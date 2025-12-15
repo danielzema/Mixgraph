@@ -1,5 +1,7 @@
 from enum import Enum
 
+# --- SONG -------------------------------------------------------------------#
+
 class CamelotKey(Enum):
     ONE_A    = (1, "A")
     ONE_B    = (1, "B")
@@ -101,6 +103,37 @@ class Song:
     high_impact: bool 
     volume: Volume
 
-    energy: SubSession
-    
+    phase: Phase
 
+# --- TRANSITION -------------------------------------------------------------#
+
+class TransitionType(Enum):
+    BLEND = 1
+    ECHO_OUT = 2
+    DROP_SWAP = 3
+    WORDPLAY = 4
+    LOOP = 5
+
+class HotCue(Enum):
+    A = 1
+    B = 2
+    C = 3
+    D = 4
+    E = 5
+    F = 6
+    G = 7
+    H = 8
+    I = 9
+    J = 10
+
+class Transition:
+
+    transition_from: Song 
+    transition_to: Song 
+
+    rating: int # 1,2,3,4,5
+    transition_type: TransitionType
+    mix_in: HotCue
+    mix_out: HotCue
+
+# --- GRAPH ------------------------------------------------------------------#

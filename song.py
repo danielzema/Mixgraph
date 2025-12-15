@@ -46,6 +46,48 @@ class CamelotKey(Enum):
             
         return False
 
+# TODO check auto() documentation
+class Volume(Enum):
+    LOW = 1
+    GOOD = 2
+    HIGH = 3
+
+class Phase(Enum):
+    OPENING = 0
+    PREGAME = 1 
+    WARMUP = 2
+    PEAK = 3 
+    COOLDOWN = 4
+    CLOSING = 5
+    # Stopping the music for birthday announcements, etc.
+    SPECIAL = 6
+
+class SessionType(Enum):
+    CLUB = 1
+    BEACH = 2 
+
+SUBSESSIONS: dict[SessionType, set[Phase]] = {
+    
+    # Club session structure
+    SessionType.CLUB: {
+        Phase.OPENING,
+        Phase.PREGAME,
+        Phase.WARMUP,
+        Phase.PEAK,
+        Phase.COOLDOWN,
+        Phase.CLOSING
+    },
+
+    # Beach session structure
+    SessionType.BEACH: {
+        Phase.WARMUP,
+        Phase.PEAK,
+        Phase.COOLDOWN,
+        Phase.SPECIAL
+    }
+
+}
+
 class Song:
 
     id: int
@@ -54,3 +96,11 @@ class Song:
 
     bpm: float 
     camelot_key: CamelotKey
+    intro_bars: int
+
+    high_impact: bool 
+    volume: Volume
+
+    energy: SubSession
+    
+

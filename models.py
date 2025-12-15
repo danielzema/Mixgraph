@@ -137,3 +137,12 @@ class Transition:
     mix_out: HotCue
 
 # --- GRAPH ------------------------------------------------------------------#
+
+class Graph: 
+    
+    def __init__(self):
+        self.songs: set[Song] = set()
+        self.transitions: set[Transition] = set()
+
+    def add_song(self, song: Song):
+        

@@ -35,14 +35,6 @@ class CamelotKey(Enum):
     def to_string(self) -> str:
         return f"{self.number}{self.letter}"
 
-    @classmethod
-    def from_str(cls, value: str) -> "CamelotKey":
-        value = value.strip().upper()
-        for member in cls:
-            if str(member) == value:
-                return member
-        raise ValueError(f"Invalid Camelot key: {value}")
-
     def is_in_key(self, other: "CamelotKey") -> bool:
         
         # Same key: 7A, 7A
@@ -111,10 +103,9 @@ class Song:
     camelot_key: CamelotKey
     intro_beats: int
 
+    phase: Phase
     high_impact: bool 
     volume: Volume
-
-    phase: Phase
 
     def __init__(
         self,
@@ -126,7 +117,7 @@ class Song:
         intro_beats: int,
         phase: Phase,
         high_impact: bool = False,
-        volume: Volume.GOOD,
+        volume: Volume = Volume.GOOD,
     ):
         self.id = id
         self.title = title
@@ -134,9 +125,9 @@ class Song:
         self.bpm = bpm
         self.camelot_key = camelot_key
         self.intro_beats = intro_beats
+        self.phase = phase
         self.high_impact = high_impact
         self.volume = volume
-        self.phase = phase
 
 # --- TRANSITION -------------------------------------------------------------#
 
@@ -168,3 +159,19 @@ class Transition:
     transition_type: TransitionType
     mix_in: HotCue
     mix_out: HotCue
+
+    def __init__(
+        self,
+        transition_from: Song,
+        transition_to: Song,
+        rating: int,
+        transition_type: TransitionType,
+        mix_in: HotCue,
+        mix_out: HotCue,
+    ):
+        self.transition_from = transition_from
+        self.transition_to = transition_to
+        self.rating = rating
+        self.transition_type = transition_type
+        self.mix_in = mix_in
+        self.mix_out = mix_out

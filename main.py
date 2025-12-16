@@ -16,3 +16,8 @@ def build_graph() -> Graph:
 if __name__ == "__main__":
     graph = build_graph()
     print(f"Songs loaded: {len(graph.songs)}")
+    
+    print("\nTransitions:")
+    for transition in TRANSITIONS:
+        transition.show()
+    

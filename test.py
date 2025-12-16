@@ -1,4 +1,4 @@
-from song import CamelotKey
+from models import CamelotKey
 
 
 def test_is_in_key():

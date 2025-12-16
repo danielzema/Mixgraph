@@ -175,3 +175,7 @@ class Transition:
         self.transition_type = transition_type
         self.mix_in = mix_in
         self.mix_out = mix_out
+
+    def show(self):
+        print(self.transition_from.title + " -> " + self.transition_to.title)
+        

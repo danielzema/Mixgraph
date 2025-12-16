@@ -32,7 +32,7 @@ class CamelotKey(Enum):
         self.number = number
         self.letter = letter 
 
-    def to_string(self) -> str:
+    def __str__(self) -> str:
         return f"{self.number}{self.letter}"
 
     def is_in_key(self, other: "CamelotKey") -> bool:
@@ -138,6 +138,9 @@ class TransitionType(Enum):
     WORDPLAY = 4
     LOOP = 5
 
+    def __str__(self) -> str:
+        return self.name.replace("_", " ").title()
+
 class HotCue(Enum):
     A = 1
     B = 2
@@ -157,8 +160,8 @@ class Transition:
 
     rating: int # 1,2,3,4,5
     transition_type: TransitionType
-    mix_in: HotCue
-    mix_out: HotCue
+    #mix_in: HotCue
+    #mix_out: HotCue
 
     def __init__(
         self,
@@ -166,15 +169,15 @@ class Transition:
         transition_to: Song,
         rating: int,
         transition_type: TransitionType,
-        mix_in: HotCue,
-        mix_out: HotCue,
+        #mix_in: HotCue,
+        #mix_out: HotCue,
     ):
         self.transition_from = transition_from
         self.transition_to = transition_to
         self.rating = rating
         self.transition_type = transition_type
-        self.mix_in = mix_in
-        self.mix_out = mix_out
+        #self.mix_in = mix_in
+        #self.mix_out = mix_out
 
     def show(self):
         print(self.transition_from.title + " -> " + self.transition_to.title)

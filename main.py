@@ -57,27 +57,6 @@ def run_cli():
     """Main CLI loop for the DJ transition navigator."""
     print("\n🎧 Mixgraph - A Transition Navigator 🎧\n")
     
-    """
-    print("Available songs:")
-    for idx, song in enumerate(TRACKLIST, 1):
-        print(f"   [{idx}] {song.title} - {song.artist}")
-    
-    while True:
-        try:
-            choice = input(f"\nSelect starting song (1-{len(TRACKLIST)}) or 'q' to quit: ").strip()
-            if choice.lower() == 'q':
-                print("\n👋 Goodbye!")
-                return
-            
-            song_idx = int(choice) - 1
-            if 0 <= song_idx < len(TRACKLIST):
-                current_song = TRACKLIST[song_idx]
-                break
-            else:
-                print(f"❌ Please enter a number between 1 and {len(TRACKLIST)}")
-        except ValueError:
-            print("❌ Invalid input. Please enter a number or 'q'.")
-    """
     # Start from a song, let user choose by typing song name
     current_song = None
     while current_song is None:
@@ -97,34 +76,21 @@ def run_cli():
         display_song_info(current_song)
         
         available_transitions = get_transitions_from_song(current_song, TRANSITIONS)
+        display_transitions(available_transitions)
         
-        if not display_transitions(available_transitions):
-            while True:
-                next_song_title = input("Enter the title of the next song or 'q' to quit: ").strip().lower()
-                if next_song_title == 'q':
-                    print("\n👋 Goodbye!")
-                    return
-                
-                matching_songs = [song for song in TRACKLIST if song.title.lower() == next_song_title]
-                if not matching_songs:
-                    print(f"❌ No song found with the title '{next_song_title}'. Please try again.")
-                else:
-                    current_song = matching_songs[0]
-                    break
-            continue
-        
-        # Get user choice
+        # Get user input
         while True:
-            choice = input(f"\nSelect transition (1-{len(available_transitions)}) or 'q' to quit or 'set' to show history: ").strip()
+            choice = input("\n> ").strip().lower()
             
-            if choice.lower() == 'q':
+            if choice == 'q':
                 print("\n👋 Goodbye!")
                 return
             
-            if choice.lower() == 'set':
+            if choice == 'set':
                 display_history(history)
                 continue
             
+            # Try to interpret as transition number
             try:
                 transition_idx = int(choice) - 1
                 if 0 <= transition_idx < len(available_transitions):
@@ -133,10 +99,18 @@ def run_cli():
                     history.append(current_song)
                     clear_console()
                     break
-                else:
+                elif len(available_transitions) > 0:
                     print(f"❌ Please enter a number between 1 and {len(available_transitions)}")
             except ValueError:
-                print("❌ Invalid input. Please enter a number or 'q' or 'set'.")
+                # Try to interpret as song title
+                matching_songs = [song for song in TRACKLIST if song.title.lower() == choice]
+                if matching_songs:
+                    current_song = matching_songs[0]
+                    history.append(current_song)
+                    clear_console()
+                    break
+                else:
+                    print(f"❌ Invalid input: '{choice}'")
 
 if __name__ == "__main__":
     run_cli()

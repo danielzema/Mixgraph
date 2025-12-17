@@ -9,7 +9,7 @@ TRACKLIST = [
         camelot_key = CamelotKey.THREE_B,
         intro_beats = 16,
         phase       = Phase.PEAK,
-        high_impact = False,
+        high_impact = True,
         volume      = Volume.GOOD
     ),
     Song(
@@ -31,7 +31,7 @@ TRACKLIST = [
         camelot_key = CamelotKey.EIGHT_B,
         intro_beats = 32,
         phase       = Phase.PEAK,
-        high_impact = False,
+        high_impact = True,
         volume      = Volume.GOOD
     ),
     Song(
@@ -44,5 +44,16 @@ TRACKLIST = [
         phase       = Phase.PEAK,
         high_impact = False,
         volume      = Volume.GOOD
+    ),
+    Song(
+        id          = 5,
+        title       = "Waka Waka (This Time for Africa)",
+        artist      = "Shakira, Freshlyground",
+        bpm         = 127,
+        camelot_key = CamelotKey.TEN_A,
+        intro_beats = 32,
+        phase       = Phase.PEAK,
+        high_impact = False,
+        volume      = Volume.LOW
     ),
 ]

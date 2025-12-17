@@ -1,7 +1,12 @@
+import os
 from graph import Graph
 from tracklist import TRACKLIST
 from transitions import TRANSITIONS
 from models import Song, Transition
+
+def clear_console():
+    """Clear the console screen."""
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def build_graph() -> Graph:
     graph = Graph()
@@ -39,6 +44,15 @@ def display_transitions(transitions: list[Transition]):
     
     return True
 
+def display_history(history: list[Song]):
+    """Display the transition history in the format: Song1 -> Song2 -> Song3"""
+    if not history:
+        print("\n❌ No history yet!")
+        return
+    
+    history_str = " → ".join([f"{song.title}" for song in history])
+    print(f"\n🎧 Current Set:\n   {history_str}")
+
 def run_cli():
     """Main CLI loop for the DJ transition navigator."""
     print("\n🎧 Mixgraph - A Transition Navigator 🎧\n")
@@ -75,6 +89,9 @@ def run_cli():
         else:
             current_song = matching_songs[0]
     
+    # Initialize history with the starting song
+    history = [current_song]
+    
     # Main navigation loop
     while True:
         display_song_info(current_song)
@@ -98,22 +115,28 @@ def run_cli():
         
         # Get user choice
         while True:
-            choice = input(f"\nSelect transition (1-{len(available_transitions)}) or 'q' to quit: ").strip()
+            choice = input(f"\nSelect transition (1-{len(available_transitions)}) or 'q' to quit or 'set' to show history: ").strip()
             
             if choice.lower() == 'q':
                 print("\n👋 Goodbye!")
                 return
+            
+            if choice.lower() == 'set':
+                display_history(history)
+                continue
             
             try:
                 transition_idx = int(choice) - 1
                 if 0 <= transition_idx < len(available_transitions):
                     selected_transition = available_transitions[transition_idx]
                     current_song = selected_transition.transition_to
+                    history.append(current_song)
+                    clear_console()
                     break
                 else:
                     print(f"❌ Please enter a number between 1 and {len(available_transitions)}")
             except ValueError:
-                print("❌ Invalid input. Please enter a number or 'q'.")
+                print("❌ Invalid input. Please enter a number or 'q' or 'set'.")
 
 if __name__ == "__main__":
     run_cli()

@@ -36,4 +36,14 @@ TRANSITIONS = [
         rating          = 5,
         transition_type = TransitionType.BLEND,
     ),
+
+    # Danza Kuduro -> Waka Waka (This Time for Africa)
+    Transition(
+        transition_from = SONG_BY_ID[3],
+        transition_to   = SONG_BY_ID[5],
+        rating          = 3,
+        transition_type = TransitionType.BLEND,
+    ),
+
+    
 ]

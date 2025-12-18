@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { 
   getTracks, 
-  deleteTrack, 
+  deleteTrack,
+  createTrack,
   getFolders, 
   createFolder, 
   deleteFolder,
@@ -23,6 +24,13 @@ function Tracks() {
   const [dragOver, setDragOver] = useState(null)
   const [importing, setImporting] = useState(false)
   const [showAddTrack, setShowAddTrack] = useState(false)
+  const [showCreateTrack, setShowCreateTrack] = useState(false)
+  const [newTrack, setNewTrack] = useState({
+    title: '',
+    artist: '',
+    bpm: '',
+    key: ''
+  })
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -163,6 +171,38 @@ function Tracks() {
     }
   }
 
+  async function handleCreateTrack(e) {
+    e.preventDefault()
+    
+    if (!newTrack.title || !newTrack.artist) {
+      alert('Title and Artist are required')
+      return
+    }
+
+    const trackData = {
+      title: newTrack.title,
+      artist: newTrack.artist,
+      bpm: newTrack.bpm ? parseFloat(newTrack.bpm) : null,
+      key: newTrack.key || null
+    }
+
+    const result = await createTrack(trackData)
+    
+    if (result.error) {
+      alert(result.error)
+    } else {
+      // Add to folder if one is selected
+      if (selectedFolder) {
+        await addTrackToFolder(selectedFolder.id, result.id)
+        loadFolderTracks(selectedFolder.id)
+      }
+      
+      loadData()
+      setShowCreateTrack(false)
+      setNewTrack({ title: '', artist: '', bpm: '', key: '' })
+    }
+  }
+
   const filteredTracks = tracks.filter(t => 
     t.title.toLowerCase().includes(search.toLowerCase()) ||
     t.artist.toLowerCase().includes(search.toLowerCase())
@@ -264,6 +304,12 @@ function Tracks() {
                   Add Track
                 </button>
                 <button 
+                  className="btn"
+                  onClick={() => setShowCreateTrack(true)}
+                >
+                  Create New
+                </button>
+                <button 
                   className="btn btn-secondary"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={importing}
@@ -278,6 +324,15 @@ function Tracks() {
                   onChange={handleFileSelect}
                 />
               </div>
+            )}
+
+            {!selectedFolder && (
+              <button 
+                className="btn"
+                onClick={() => setShowCreateTrack(true)}
+              >
+                + Create New Track
+              </button>
             )}
           </div>
 
@@ -415,6 +470,84 @@ function Tracks() {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Track Modal */}
+      {showCreateTrack && (
+        <div className="modal-overlay" onClick={() => setShowCreateTrack(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <h2>Create New Track</h2>
+            
+            <form onSubmit={handleCreateTrack}>
+              <div className="form-group">
+                <label htmlFor="title">Title *</label>
+                <input
+                  id="title"
+                  type="text"
+                  className="form-input"
+                  value={newTrack.title}
+                  onChange={e => setNewTrack({...newTrack, title: e.target.value})}
+                  placeholder="Track title"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="artist">Artist *</label>
+                <input
+                  id="artist"
+                  type="text"
+                  className="form-input"
+                  value={newTrack.artist}
+                  onChange={e => setNewTrack({...newTrack, artist: e.target.value})}
+                  placeholder="Artist name"
+                  required
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="bpm">BPM</label>
+                  <input
+                    id="bpm"
+                    type="number"
+                    step="0.1"
+                    className="form-input"
+                    value={newTrack.bpm}
+                    onChange={e => setNewTrack({...newTrack, bpm: e.target.value})}
+                    placeholder="120.0"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="key">Key</label>
+                  <input
+                    id="key"
+                    type="text"
+                    className="form-input"
+                    value={newTrack.key}
+                    onChange={e => setNewTrack({...newTrack, key: e.target.value})}
+                    placeholder="8A"
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions">
+                <button type="submit" className="btn">
+                  Create Track
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowCreateTrack(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

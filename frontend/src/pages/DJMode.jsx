@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { getTracks, getTrackTransitions, getFolders, getFolderTracks, getFolderTransitions, getTransitions } from '../api'
+import { getTracks, getTrackTransitions, getPlaylists, getPlaylistTracks, getTransitions } from '../api'
 
 function DJMode() {
   // Mode selection
   const [mode, setMode] = useState(null) // null = selecting, 'freestyle' or 'playlist'
-  const [folders, setFolders] = useState([])
-  const [selectedFolder, setSelectedFolder] = useState(null)
+  const [playlists, setPlaylists] = useState([])
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null)
   
   // Track state
   const [tracks, setTracks] = useState([])
@@ -18,7 +18,7 @@ function DJMode() {
   const [showSearch, setShowSearch] = useState(true)
 
   useEffect(() => {
-    getFolders().then(setFolders)
+    getPlaylists().then(setPlaylists)
   }, [])
 
   useEffect(() => {
@@ -28,16 +28,16 @@ function DJMode() {
   }, [mode])
 
   useEffect(() => {
-    if (selectedFolder) {
+    if (selectedPlaylist) {
       Promise.all([
-        getFolderTracks(selectedFolder.id),
+        getPlaylistTracks(selectedPlaylist.id),
         getTransitions() // Get all transitions to check between consecutive tracks
       ]).then(([tracksData, transitionsData]) => {
         setTracks(tracksData)
         setAllTransitions(transitionsData)
       })
     }
-  }, [selectedFolder])
+  }, [selectedPlaylist])
 
   useEffect(() => {
     if (currentTrack) {
@@ -65,8 +65,8 @@ function DJMode() {
     }
   }
 
-  function selectPlaylist(folder) {
-    setSelectedFolder(folder)
+  function selectPlaylist(playlist) {
+    setSelectedPlaylist(playlist)
     setMode('playlist')
     setShowSearch(false) // In playlist mode, start from the beginning
   }
@@ -116,7 +116,7 @@ function DJMode() {
 
   function backToModeSelect() {
     setMode(null)
-    setSelectedFolder(null)
+    setSelectedPlaylist(null)
     setCurrentTrack(null)
     setCurrentIndex(-1)
     setTransitions([])
@@ -160,19 +160,19 @@ function DJMode() {
             </div>
             
             <div className="mode-card playlist-mode">
-              <span className="mode-icon">�</span>
+              <span className="mode-icon">📋</span>
               <h3>Setlist Mode</h3>
               <p>Play through a playlist in order with defined transitions</p>
               
-              {folders.length > 0 ? (
+              {playlists.length > 0 ? (
                 <div className="playlist-select">
-                  {folders.map(folder => (
+                  {playlists.map(playlist => (
                     <button
-                      key={folder.id}
+                      key={playlist.id}
                       className="btn btn-secondary playlist-btn"
-                      onClick={(e) => { e.stopPropagation(); selectPlaylist(folder) }}
+                      onClick={(e) => { e.stopPropagation(); selectPlaylist(playlist) }}
                     >
-                      📋 {folder.name} ({folder.track_count})
+                      📋 {playlist.name} ({playlist.track_count})
                     </button>
                   ))}
                 </div>
@@ -194,7 +194,7 @@ function DJMode() {
           <button className="btn btn-secondary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
-          <h2>📋 {selectedFolder?.name}</h2>
+          <h2>📋 {selectedPlaylist?.name}</h2>
         </div>
         
         {tracks.length === 0 ? (

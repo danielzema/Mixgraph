@@ -19,6 +19,15 @@ export async function deleteTrack(id) {
   return res.json()
 }
 
+export async function createTrack(trackData) {
+  const res = await fetch(`${API_BASE}/tracks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(trackData)
+  })
+  return res.json()
+}
+
 export async function searchTracks(query) {
   const res = await fetch(`${API_BASE}/tracks/search?q=${encodeURIComponent(query)}`)
   return res.json()
@@ -53,7 +62,7 @@ export async function getTrackTransitions(trackId) {
 }
 
 // ============================================================================
-// FOLDERS/PLAYLISTS
+// FOLDERS (for track library organization)
 // ============================================================================
 
 export async function getFolders() {
@@ -122,6 +131,68 @@ export async function getFolderTransitions(folderId) {
 }
 
 // ============================================================================
+// PLAYLISTS (for DJ sets - separate from folders)
+// ============================================================================
+
+export async function getPlaylists() {
+  const res = await fetch(`${API_BASE}/playlists`)
+  return res.json()
+}
+
+export async function createPlaylist(name) {
+  const res = await fetch(`${API_BASE}/playlists`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  })
+  return res.json()
+}
+
+export async function updatePlaylist(id, name) {
+  const res = await fetch(`${API_BASE}/playlists/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  })
+  return res.json()
+}
+
+export async function deletePlaylist(id) {
+  const res = await fetch(`${API_BASE}/playlists/${id}`, { method: 'DELETE' })
+  return res.json()
+}
+
+export async function getPlaylistTracks(playlistId) {
+  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks`)
+  return res.json()
+}
+
+export async function addTrackToPlaylist(playlistId, trackId) {
+  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ track_id: trackId })
+  })
+  return res.json()
+}
+
+export async function removeTrackFromPlaylist(playlistId, position) {
+  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks/${position}`, {
+    method: 'DELETE'
+  })
+  return res.json()
+}
+
+export async function reorderPlaylistTracks(playlistId, position1, position2) {
+  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks/reorder`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ position1, position2 })
+  })
+  return res.json()
+}
+
+// ============================================================================
 // GRAPH DATA
 // ============================================================================
 
@@ -132,5 +203,10 @@ export async function getGraphData() {
 
 export async function getFolderGraphData(folderId) {
   const res = await fetch(`${API_BASE}/folders/${folderId}/graph`)
+  return res.json()
+}
+
+export async function getPlaylistGraphData(playlistId) {
+  const res = await fetch(`${API_BASE}/playlists/${playlistId}/graph`)
   return res.json()
 }

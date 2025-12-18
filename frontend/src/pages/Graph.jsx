@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getGraphData, getFolderGraphData, getFolders } from '../api'
+import { getGraphData, getFolderGraphData, getPlaylistGraphData, getFolders, getPlaylists } from '../api'
 
 function Graph() {
   const [folders, setFolders] = useState([])
+  const [playlists, setPlaylists] = useState([])
+  const [viewType, setViewType] = useState('all') // 'all', 'folder', 'playlist'
   const [selectedFolder, setSelectedFolder] = useState(null)
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null)
   const [graphData, setGraphData] = useState({ nodes: [], edges: [] })
   const [loading, setLoading] = useState(true)
   const [selectedNode, setSelectedNode] = useState(null)
@@ -19,18 +22,24 @@ function Graph() {
 
   useEffect(() => {
     getFolders().then(setFolders)
+    getPlaylists().then(setPlaylists)
   }, [])
 
   useEffect(() => {
     loadGraph()
-  }, [selectedFolder])
+  }, [viewType, selectedFolder, selectedPlaylist])
 
   async function loadGraph() {
     setLoading(true)
     try {
-      const data = selectedFolder 
-        ? await getFolderGraphData(selectedFolder.id)
-        : await getGraphData()
+      let data
+      if (viewType === 'folder' && selectedFolder) {
+        data = await getFolderGraphData(selectedFolder.id)
+      } else if (viewType === 'playlist' && selectedPlaylist) {
+        data = await getPlaylistGraphData(selectedPlaylist.id)
+      } else {
+        data = await getGraphData()
+      }
       setGraphData(data)
       
       // Initialize positions in a circle layout
@@ -245,17 +254,49 @@ function Graph() {
         <div className="graph-filter">
           <label>View:</label>
           <select 
-            value={selectedFolder?.id || ''} 
+            value={viewType} 
             onChange={e => {
-              const folder = folders.find(f => f.id === parseInt(e.target.value))
-              setSelectedFolder(folder || null)
+              setViewType(e.target.value)
+              if (e.target.value === 'all') {
+                setSelectedFolder(null)
+                setSelectedPlaylist(null)
+              }
             }}
           >
-            <option value="">All Tracks</option>
-            {folders.map(f => (
-              <option key={f.id} value={f.id}>📁 {f.name} ({f.track_count})</option>
-            ))}
+            <option value="all">All Tracks</option>
+            <option value="folder">By Folder</option>
+            <option value="playlist">By Playlist</option>
           </select>
+          
+          {viewType === 'folder' && (
+            <select 
+              value={selectedFolder?.id || ''} 
+              onChange={e => {
+                const folder = folders.find(f => f.id === parseInt(e.target.value))
+                setSelectedFolder(folder || null)
+              }}
+            >
+              <option value="">Select Folder...</option>
+              {folders.map(f => (
+                <option key={f.id} value={f.id}>📁 {f.name} ({f.track_count})</option>
+              ))}
+            </select>
+          )}
+          
+          {viewType === 'playlist' && (
+            <select 
+              value={selectedPlaylist?.id || ''} 
+              onChange={e => {
+                const playlist = playlists.find(p => p.id === parseInt(e.target.value))
+                setSelectedPlaylist(playlist || null)
+              }}
+            >
+              <option value="">Select Playlist...</option>
+              {playlists.map(p => (
+                <option key={p.id} value={p.id}>📋 {p.name}</option>
+              ))}
+            </select>
+          )}
         </div>
         
         <div className="graph-stats">
@@ -277,7 +318,7 @@ function Graph() {
         ) : graphData.nodes.length === 0 ? (
           <div className="graph-empty">
             <h3>No tracks to display</h3>
-            <p>{selectedFolder ? 'Add tracks to this playlist first' : 'Import some tracks to see the graph'}</p>
+            <p>{viewType !== 'all' ? 'Add tracks to see the graph' : 'Import some tracks to see the graph'}</p>
           </div>
         ) : (
           <svg

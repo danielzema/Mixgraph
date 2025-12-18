@@ -158,6 +158,16 @@ tr:hover {
   color: rgba(255,255,255,0.8);
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  margin-bottom: 16px;
+}
+
 .form-input, .form-select {
   width: 100%;
   padding: 12px 16px;
@@ -1369,18 +1379,57 @@ tr:hover {
   height: 400px;
 }
 
+.browser-controls {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  align-items: flex-end;
+}
+
+.folder-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+
+.folder-filter label {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.folder-filter select {
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.folder-filter select:focus {
+  outline: none;
+  border-color: #e94560;
+}
+
+.folder-filter select option {
+  background: #1a1a2e;
+}
+
 .browser-tabs {
   display: flex;
   gap: 8px;
   padding: 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 0;
 }
 
 .browser-tab {
   padding: 8px 16px;
   background: rgba(255,255,255,0.05);
   border: none;
-  border-radius: 6px;
+  border-radius: 6px 6px 0 0;
   color: rgba(255,255,255,0.6);
   cursor: pointer;
   font-size: 0.9rem;
@@ -1397,8 +1446,7 @@ tr:hover {
 }
 
 .browser-search {
-  padding: 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  flex: 1;
 }
 
 .browser-search input {

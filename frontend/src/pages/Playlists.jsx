@@ -1,91 +1,84 @@
 import { useState, useEffect, useRef } from 'react'
 import { 
-  getFolders, 
-  createFolder, 
-  deleteFolder,
-  getFolderTracks,
-  addTrackToFolder,
-  removeTrackFromFolder,
-  importRekordboxToFolder,
+  getPlaylists, 
+  createPlaylist, 
+  deletePlaylist,
+  getPlaylistTracks,
+  addTrackToPlaylist,
+  removeTrackFromPlaylist,
+  reorderPlaylistTracks,
   getTransitions
 } from '../api'
 import TrackBrowser from '../components/TrackBrowser'
 
 function Playlists() {
-  const [folders, setFolders] = useState([])
-  const [selectedFolder, setSelectedFolder] = useState(null)
-  const [folderTracks, setFolderTracks] = useState([])
+  const [playlists, setPlaylists] = useState([])
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null)
+  const [playlistTracks, setPlaylistTracks] = useState([])
   const [allTransitions, setAllTransitions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showNewFolder, setShowNewFolder] = useState(false)
-  const [newFolderName, setNewFolderName] = useState('')
+  const [showNewPlaylist, setShowNewPlaylist] = useState(false)
+  const [newPlaylistName, setNewPlaylistName] = useState('')
   const [showAddTrack, setShowAddTrack] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const fileInputRef = useRef(null)
 
   useEffect(() => {
     loadData()
   }, [])
 
   useEffect(() => {
-    if (selectedFolder) {
-      loadFolderTracks(selectedFolder.id)
+    if (selectedPlaylist) {
+      loadPlaylistTracks(selectedPlaylist.id)
     }
-  }, [selectedFolder])
+  }, [selectedPlaylist])
 
   async function loadData() {
     setLoading(true)
-    const [foldersData, transitionsData] = await Promise.all([
-      getFolders(),
+    const [playlistsData, transitionsData] = await Promise.all([
+      getPlaylists(),
       getTransitions()
     ])
-    setFolders(foldersData)
+    setPlaylists(playlistsData)
     setAllTransitions(transitionsData)
     setLoading(false)
   }
 
-  async function loadFolderTracks(folderId) {
-    const data = await getFolderTracks(folderId)
-    setFolderTracks(data)
+  async function loadPlaylistTracks(playlistId) {
+    const data = await getPlaylistTracks(playlistId)
+    setPlaylistTracks(data)
   }
 
-  async function handleCreateFolder(e) {
+  async function handleCreatePlaylist(e) {
     e.preventDefault()
-    if (!newFolderName.trim()) return
-    const result = await createFolder(newFolderName.trim())
-    setNewFolderName('')
-    setShowNewFolder(false)
+    if (!newPlaylistName.trim()) return
+    const result = await createPlaylist(newPlaylistName.trim())
+    setNewPlaylistName('')
+    setShowNewPlaylist(false)
     await loadData()
-    // Select the newly created folder
-    setSelectedFolder({ id: result.id, name: result.name, track_count: 0 })
+    // Select the newly created playlist
+    setSelectedPlaylist({ id: result.id, name: result.name, track_count: 0 })
   }
 
-  async function handleDeleteFolder(folder) {
-    if (confirm(`Delete playlist "${folder.name}"?\n\nTracks won't be deleted from your library.`)) {
-      await deleteFolder(folder.id)
-      if (selectedFolder?.id === folder.id) {
-        setSelectedFolder(null)
-        setFolderTracks([])
+  async function handleDeletePlaylist(playlist) {
+    if (confirm(`Delete playlist "${playlist.name}"?\n\nTracks won't be deleted from your library.`)) {
+      await deletePlaylist(playlist.id)
+      if (selectedPlaylist?.id === playlist.id) {
+        setSelectedPlaylist(null)
+        setPlaylistTracks([])
       }
       loadData()
     }
   }
 
   async function handleAddTrack(track) {
-    if (!selectedFolder) return
-    const result = await addTrackToFolder(selectedFolder.id, track.id)
-    if (result.error) {
-      alert(result.error)
-    } else {
-      await loadFolderTracks(selectedFolder.id)
-      loadData()
-    }
+    if (!selectedPlaylist) return
+    await addTrackToPlaylist(selectedPlaylist.id, track.id)
+    await loadPlaylistTracks(selectedPlaylist.id)
+    loadData()
   }
 
-  async function handleRemoveTrack(trackId) {
-    await removeTrackFromFolder(selectedFolder.id, trackId)
-    await loadFolderTracks(selectedFolder.id)
+  async function handleRemoveTrack(position) {
+    await removeTrackFromPlaylist(selectedPlaylist.id, position)
+    await loadPlaylistTracks(selectedPlaylist.id)
     loadData()
   }
 
@@ -94,84 +87,22 @@ function Playlists() {
     return allTransitions.find(t => t.from_track_id === fromId && t.to_track_id === toId)
   }
 
-  // Drag and drop for file import
-  function handleDragOver(e) {
-    e.preventDefault()
-    setDragOver(true)
-  }
-
-  function handleDragLeave(e) {
-    e.preventDefault()
-    setDragOver(false)
-  }
-
-  async function handleDrop(e) {
-    e.preventDefault()
-    setDragOver(false)
-    
-    if (!selectedFolder) return
-    
-    const files = Array.from(e.dataTransfer.files)
-    const txtFile = files.find(f => f.name.endsWith('.txt'))
-    
-    if (txtFile) {
-      setImporting(true)
-      try {
-        const result = await importRekordboxToFolder(selectedFolder.id, txtFile)
-        if (result.success) {
-          alert(`Imported ${result.imported} tracks from ${txtFile.name}`)
-          await loadFolderTracks(selectedFolder.id)
-          loadData()
-        } else {
-          alert(`Import failed: ${result.error}`)
-        }
-      } catch (err) {
-        alert(`Import failed: ${err.message}`)
-      }
-      setImporting(false)
-    }
-  }
-
-  async function handleFileSelect(e) {
-    const file = e.target.files[0]
-    if (!file || !selectedFolder) return
-    
-    setImporting(true)
-    try {
-      const result = await importRekordboxToFolder(selectedFolder.id, file)
-      if (result.success) {
-        alert(`Imported ${result.imported} tracks from ${file.name}`)
-        await loadFolderTracks(selectedFolder.id)
-        loadData()
-      } else {
-        alert(`Import failed: ${result.error}`)
-      }
-    } catch (err) {
-      alert(`Import failed: ${err.message}`)
-    }
-    setImporting(false)
-    e.target.value = ''
-  }
-
   // Move track up in the list
   async function moveTrackUp(index) {
     if (index <= 0) return
-    // This would require a backend endpoint to reorder - for now just visual feedback
-    const newTracks = [...folderTracks]
-    const temp = newTracks[index]
-    newTracks[index] = newTracks[index - 1]
-    newTracks[index - 1] = temp
-    setFolderTracks(newTracks)
+    const pos1 = playlistTracks[index].position
+    const pos2 = playlistTracks[index - 1].position
+    await reorderPlaylistTracks(selectedPlaylist.id, pos1, pos2)
+    await loadPlaylistTracks(selectedPlaylist.id)
   }
 
   // Move track down in the list
   async function moveTrackDown(index) {
-    if (index >= folderTracks.length - 1) return
-    const newTracks = [...folderTracks]
-    const temp = newTracks[index]
-    newTracks[index] = newTracks[index + 1]
-    newTracks[index + 1] = temp
-    setFolderTracks(newTracks)
+    if (index >= playlistTracks.length - 1) return
+    const pos1 = playlistTracks[index].position
+    const pos2 = playlistTracks[index + 1].position
+    await reorderPlaylistTracks(selectedPlaylist.id, pos1, pos2)
+    await loadPlaylistTracks(selectedPlaylist.id)
   }
 
   return (
@@ -182,20 +113,20 @@ function Playlists() {
           <h3>📋 Playlists</h3>
           <button 
             className="btn btn-small"
-            onClick={() => setShowNewFolder(true)}
+            onClick={() => setShowNewPlaylist(true)}
             title="New Playlist"
           >
             +
           </button>
         </div>
 
-        {showNewFolder && (
-          <form onSubmit={handleCreateFolder} className="new-folder-form">
+        {showNewPlaylist && (
+          <form onSubmit={handleCreatePlaylist} className="new-folder-form">
             <input
               type="text"
               placeholder="Playlist name..."
-              value={newFolderName}
-              onChange={e => setNewFolderName(e.target.value)}
+              value={newPlaylistName}
+              onChange={e => setNewPlaylistName(e.target.value)}
               autoFocus
             />
             <div className="form-actions">
@@ -203,7 +134,7 @@ function Playlists() {
               <button 
                 type="button" 
                 className="btn btn-small btn-secondary"
-                onClick={() => { setShowNewFolder(false); setNewFolderName('') }}
+                onClick={() => { setShowNewPlaylist(false); setNewPlaylistName('') }}
               >
                 Cancel
               </button>
@@ -214,21 +145,21 @@ function Playlists() {
         <div className="playlist-list">
           {loading ? (
             <p className="loading-text">Loading...</p>
-          ) : folders.length === 0 ? (
+          ) : playlists.length === 0 ? (
             <p className="empty-text">No playlists yet</p>
           ) : (
-            folders.map(folder => (
+            playlists.map(playlist => (
               <div
-                key={folder.id}
-                className={`playlist-item ${selectedFolder?.id === folder.id ? 'active' : ''}`}
-                onClick={() => setSelectedFolder(folder)}
+                key={playlist.id}
+                className={`playlist-item ${selectedPlaylist?.id === playlist.id ? 'active' : ''}`}
+                onClick={() => setSelectedPlaylist(playlist)}
               >
                 <span className="playlist-icon">📋</span>
-                <span className="playlist-name">{folder.name}</span>
-                <span className="playlist-count">{folder.track_count}</span>
+                <span className="playlist-name">{playlist.name}</span>
+                <span className="playlist-count">{playlist.track_count}</span>
                 <button
                   className="playlist-delete"
-                  onClick={e => { e.stopPropagation(); handleDeleteFolder(folder) }}
+                  onClick={e => { e.stopPropagation(); handleDeletePlaylist(playlist) }}
                   title="Delete playlist"
                 >
                   ×
@@ -245,65 +176,43 @@ function Playlists() {
 
       {/* Main Content */}
       <div className="playlists-main">
-        {!selectedFolder ? (
+        {!selectedPlaylist ? (
           <div className="card empty-state-card">
             <h2>📋 Select a Playlist</h2>
-            <p>Choose a playlist from the sidebar or create a new one to start building your set.</p>
-            <button className="btn" onClick={() => setShowNewFolder(true)}>
-              + Create New Playlist
-            </button>
+            <p>Choose a playlist from the sidebar to start building your set.</p>
           </div>
         ) : (
-          <div 
-            className={`card playlist-editor ${dragOver ? 'drag-over' : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
+          <div className="card playlist-editor">
             <div className="playlist-header">
               <div>
-                <h2>📋 {selectedFolder.name}</h2>
+                <h2>📋 {selectedPlaylist.name}</h2>
                 <p className="playlist-subtitle">
-                  {folderTracks.length} tracks • {folderTracks.length > 1 ? `${folderTracks.length - 1} transitions` : 'No transitions yet'}
+                  {playlistTracks.length} tracks • {playlistTracks.length > 1 ? `${playlistTracks.length - 1} transitions` : 'No transitions yet'}
                 </p>
               </div>
               <div className="playlist-actions">
                 <button className="btn" onClick={() => setShowAddTrack(true)}>
                   + Add Track
                 </button>
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={importing}
-                >
-                  {importing ? 'Importing...' : '📥 Import .txt'}
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".txt"
-                  style={{ display: 'none' }}
-                  onChange={handleFileSelect}
-                />
               </div>
             </div>
 
-            {folderTracks.length === 0 ? (
+            {playlistTracks.length === 0 ? (
               <div className="empty-playlist">
                 <div className="drop-zone-large">
-                  <span className="drop-icon">📥</span>
+                  <span className="drop-icon">🎵</span>
                   <h3>Add tracks to your playlist</h3>
-                  <p>Click "Add Track" to browse your library, or drag a Rekordbox .txt file here</p>
+                  <p>Click "Add Track" to browse your library and track folders</p>
                 </div>
               </div>
             ) : (
               <div className="setlist">
-                {folderTracks.map((track, index) => {
-                  const nextTrack = folderTracks[index + 1]
+                {playlistTracks.map((track, index) => {
+                  const nextTrack = playlistTracks[index + 1]
                   const transition = nextTrack ? getTransitionBetween(track.id, nextTrack.id) : null
                   
                   return (
-                    <div key={track.id} className="setlist-item">
+                    <div key={`${track.id}-${index}`} className="setlist-item">
                       <div className="setlist-track">
                         <div className="track-number">{index + 1}</div>
                         <div className="track-info">
@@ -326,14 +235,14 @@ function Playlists() {
                           <button 
                             className="control-btn"
                             onClick={() => moveTrackDown(index)}
-                            disabled={index === folderTracks.length - 1}
+                            disabled={index === playlistTracks.length - 1}
                             title="Move down"
                           >
                             ↓
                           </button>
                           <button 
                             className="control-btn remove"
-                            onClick={() => handleRemoveTrack(track.id)}
+                            onClick={() => handleRemoveTrack(track.position)}
                             title="Remove from playlist"
                           >
                             ×
@@ -368,11 +277,11 @@ function Playlists() {
       </div>
 
       {/* Add Track Modal */}
-      {showAddTrack && selectedFolder && (
+      {showAddTrack && selectedPlaylist && (
         <div className="modal-overlay" onClick={() => setShowAddTrack(false)}>
           <div className="modal modal-large" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Add Track to {selectedFolder.name}</h2>
+              <h2>Add Track to {selectedPlaylist.name}</h2>
               <button className="modal-close" onClick={() => setShowAddTrack(false)}>×</button>
             </div>
             
@@ -380,7 +289,7 @@ function Playlists() {
               onSelect={(track) => {
                 handleAddTrack(track)
               }}
-              excludeIds={folderTracks.map(t => t.id)}
+              excludeIds={[]}
             />
           </div>
         </div>

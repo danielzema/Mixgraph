@@ -1,19 +1,23 @@
 import { useState, useEffect } from 'react'
-import { getTracks, getFolders, getFolderTracks } from '../api'
+import { getTracks, getFolders, getFolderTracks, getPlaylists, getPlaylistTracks } from '../api'
 
-function TrackBrowser({ onSelect, excludeIds = [] }) {
+function TrackBrowser({ onSelect, excludeIds = [], mode = 'tracks' }) {
+  const [searchMode, setSearchMode] = useState(mode) // 'tracks' or 'playlists'
   const [tracks, setTracks] = useState([])
   const [folders, setFolders] = useState([])
+  const [playlists, setPlaylists] = useState([])
   const [selectedFolder, setSelectedFolder] = useState(null)
+  const [selectedPlaylist, setSelectedPlaylist] = useState(null)
   const [folderTracks, setFolderTracks] = useState([])
+  const [playlistTracks, setPlaylistTracks] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState('search') // 'search', 'browse', or 'folders'
 
   useEffect(() => {
-    Promise.all([getTracks(), getFolders()]).then(([tracksData, foldersData]) => {
+    Promise.all([getTracks(), getFolders(), getPlaylists()]).then(([tracksData, foldersData, playlistsData]) => {
       setTracks(tracksData)
       setFolders(foldersData)
+      setPlaylists(playlistsData)
       setLoading(false)
     })
   }, [])
@@ -21,121 +25,165 @@ function TrackBrowser({ onSelect, excludeIds = [] }) {
   useEffect(() => {
     if (selectedFolder) {
       getFolderTracks(selectedFolder.id).then(setFolderTracks)
+    } else {
+      setFolderTracks([])
     }
   }, [selectedFolder])
 
-  const currentTracks = selectedFolder ? folderTracks : tracks
+  useEffect(() => {
+    if (selectedPlaylist) {
+      getPlaylistTracks(selectedPlaylist.id).then(setPlaylistTracks)
+    } else {
+      setPlaylistTracks([])
+    }
+  }, [selectedPlaylist])
+
+  // Get current tracks based on mode and selection
+  const getCurrentTracks = () => {
+    if (searchMode === 'playlists') {
+      return selectedPlaylist ? playlistTracks : []
+    }
+    return selectedFolder ? folderTracks : tracks
+  }
   
+  const currentTracks = getCurrentTracks()
+  
+  // Filter by search
   const filteredTracks = currentTracks
     .filter(t => !excludeIds.includes(t.id))
     .filter(t => {
-      if (viewMode === 'search' && search.length < 2) return false
-      if (search.length >= 2) {
-        return t.title.toLowerCase().includes(search.toLowerCase()) ||
-               t.artist.toLowerCase().includes(search.toLowerCase())
-      }
-      return true
+      if (search.length < 2) return true
+      return t.title.toLowerCase().includes(search.toLowerCase()) ||
+             t.artist.toLowerCase().includes(search.toLowerCase())
     })
 
-  const displayTracks = viewMode === 'search' 
-    ? filteredTracks.slice(0, 15) 
-    : filteredTracks
-
-  function handleFolderSelect(folder) {
-    setSelectedFolder(folder)
-    setViewMode('folders')
-  }
-
-  function handleBackToFolders() {
-    setSelectedFolder(null)
-    setFolderTracks([])
-  }
+  // Filter playlists by search
+  const filteredPlaylists = playlists.filter(p => {
+    if (search.length < 2) return true
+    return p.name.toLowerCase().includes(search.toLowerCase())
+  })
 
   return (
     <div className="track-browser">
+      {/* Mode tabs */}
       <div className="browser-tabs">
         <button 
-          className={`browser-tab ${viewMode === 'search' ? 'active' : ''}`}
-          onClick={() => { setViewMode('search'); setSelectedFolder(null) }}
+          className={`browser-tab ${searchMode === 'tracks' ? 'active' : ''}`}
+          onClick={() => { setSearchMode('tracks'); setSelectedPlaylist(null); setSearch('') }}
         >
-          🔍 Search
+          🎵 Tracks
         </button>
         <button 
-          className={`browser-tab ${viewMode === 'browse' ? 'active' : ''}`}
-          onClick={() => { setViewMode('browse'); setSelectedFolder(null) }}
+          className={`browser-tab ${searchMode === 'playlists' ? 'active' : ''}`}
+          onClick={() => { setSearchMode('playlists'); setSelectedFolder(null); setSearch('') }}
         >
-          📚 All Tracks
-        </button>
-        <button 
-          className={`browser-tab ${viewMode === 'folders' ? 'active' : ''}`}
-          onClick={() => { setViewMode('folders'); setSelectedFolder(null) }}
-        >
-          📁 Playlists
+          📋 Playlists
         </button>
       </div>
 
-      {/* Folder browser */}
-      {viewMode === 'folders' && !selectedFolder && (
-        <div className="browser-folders">
-          {folders.length === 0 ? (
-            <p className="browser-hint">No playlists yet</p>
-          ) : (
-            <div className="browser-folder-list">
+      {/* Controls based on mode */}
+      <div className="browser-controls">
+        {searchMode === 'tracks' && (
+          <div className="folder-filter">
+            <label>📁 Folder:</label>
+            <select 
+              className="form-select"
+              value={selectedFolder?.id || ''}
+              onChange={e => {
+                const folderId = e.target.value
+                if (folderId) {
+                  const folder = folders.find(f => f.id === parseInt(folderId))
+                  setSelectedFolder(folder)
+                } else {
+                  setSelectedFolder(null)
+                }
+              }}
+            >
+              <option value="">All Tracks</option>
               {folders.map(folder => (
-                <div 
-                  key={folder.id}
-                  className="browser-folder-item"
-                  onClick={() => handleFolderSelect(folder)}
-                >
-                  <span className="folder-icon">📁</span>
-                  <span className="folder-name">{folder.name}</span>
-                  <span className="folder-count">{folder.track_count} tracks</span>
-                </div>
+                <option key={folder.id} value={folder.id}>
+                  {folder.name} ({folder.track_count})
+                </option>
               ))}
-            </div>
-          )}
-        </div>
-      )}
+            </select>
+          </div>
+        )}
 
-      {/* Folder header when viewing folder contents */}
-      {viewMode === 'folders' && selectedFolder && (
-        <div className="browser-folder-header">
-          <button className="btn btn-small btn-secondary" onClick={handleBackToFolders}>
-            ← Back
-          </button>
-          <span className="folder-title">📁 {selectedFolder.name}</span>
-        </div>
-      )}
+        {searchMode === 'playlists' && !selectedPlaylist && (
+          <div className="folder-filter" style={{ flex: 1 }}>
+            <label>Search playlists:</label>
+          </div>
+        )}
 
-      {/* Search/filter bar - show for search, browse, or when viewing folder contents */}
-      {(viewMode !== 'folders' || selectedFolder) && (
+        {searchMode === 'playlists' && selectedPlaylist && (
+          <div className="folder-filter">
+            <button 
+              className="btn btn-small btn-secondary"
+              onClick={() => setSelectedPlaylist(null)}
+            >
+              ← Back to playlists
+            </button>
+            <span style={{ marginLeft: 12 }}>📋 {selectedPlaylist.name}</span>
+          </div>
+        )}
+        
         <div className="browser-search">
           <input
             type="text"
             className="form-input"
-            placeholder={viewMode === 'search' ? "Type to search..." : "Filter tracks..."}
+            placeholder={searchMode === 'playlists' && !selectedPlaylist ? "Search playlists..." : "Search tracks..."}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            autoFocus={viewMode === 'search'}
+            autoFocus
           />
         </div>
-      )}
+      </div>
 
       {loading ? (
-        <p className="browser-hint" style={{ padding: 20 }}>Loading tracks...</p>
-      ) : (viewMode !== 'folders' || selectedFolder) && (
+        <p className="browser-hint" style={{ padding: 20 }}>Loading...</p>
+      ) : searchMode === 'playlists' && !selectedPlaylist ? (
+        // Show playlist list
         <div className="browser-results">
-          {viewMode === 'search' && search.length < 2 ? (
-            <p className="browser-hint">Type at least 2 characters to search</p>
-          ) : displayTracks.length === 0 ? (
-            <p className="browser-hint">No tracks found</p>
+          {filteredPlaylists.length === 0 ? (
+            <p className="browser-hint">No playlists found</p>
           ) : (
             <>
-              <p className="browser-count">{displayTracks.length} tracks</p>
+              <p className="browser-count">{filteredPlaylists.length} playlists</p>
               <div className="browser-list">
-                {displayTracks.map(track => (
+                {filteredPlaylists.map(playlist => (
                   <div 
-                    key={track.id}
+                    key={playlist.id}
+                    className="browser-track"
+                    onClick={() => setSelectedPlaylist(playlist)}
+                  >
+                    <div className="track-info">
+                      <div className="track-title">📋 {playlist.name}</div>
+                      <div className="track-artist">{playlist.track_count} tracks</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        // Show track list
+        <div className="browser-results">
+          {filteredTracks.length === 0 ? (
+            <p className="browser-hint">
+              {searchMode === 'playlists' ? 'No tracks in this playlist' : 'No tracks found'}
+            </p>
+          ) : (
+            <>
+              <p className="browser-count">
+                {filteredTracks.length} tracks
+                {selectedFolder && ` in ${selectedFolder.name}`}
+                {selectedPlaylist && ` in ${selectedPlaylist.name}`}
+              </p>
+              <div className="browser-list">
+                {filteredTracks.map((track, index) => (
+                  <div 
+                    key={`${track.id}-${index}`}
                     className="browser-track"
                     onClick={() => onSelect(track)}
                   >

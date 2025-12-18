@@ -4,7 +4,7 @@ TRACKLIST = [
     Song(
         id          = 1,
         title       = "I Love It",
-        artist      = "Icona Pop Charli XCX",
+        artist      = "Icona Pop, Charli XCX",
         bpm         = 126,
         camelot_key = CamelotKey.THREE_B,
         intro_beats = 16,
@@ -15,7 +15,7 @@ TRACKLIST = [
     Song(
         id          = 2,
         title       = "Party Rock Anthem",
-        artist      = "LMFAO Lauren Bennett",
+        artist      = "LMFAO Lauren, Bennett",
         bpm         = 130,
         camelot_key = CamelotKey.FOUR_A,
         intro_beats = 32,
@@ -26,7 +26,7 @@ TRACKLIST = [
     Song(
         id          = 3,
         title       = "Danza Kuduro",
-        artist      = "Don Omar Lucenzo",
+        artist      = "Don Omar, Lucenzo",
         bpm         = 130,
         camelot_key = CamelotKey.EIGHT_B,
         intro_beats = 32,
@@ -47,7 +47,7 @@ TRACKLIST = [
     ),
     Song(
         id          = 5,
-        title       = "Waka Waka (This Time for Africa)",
+        title       = "Waka Waka",
         artist      = "Shakira, Freshlyground",
         bpm         = 127,
         camelot_key = CamelotKey.TEN_A,

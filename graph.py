@@ -1,4 +1,5 @@
 from models import Song, Transition
+
 class Graph: 
     
     def __init__(self):

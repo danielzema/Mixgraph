@@ -90,7 +90,7 @@ SUBSESSIONS: dict[SessionType, set[Phase]] = {
         Phase.COOLDOWN,
         Phase.SPECIAL
     }
-
+    # TODO Add more
 }
 
 class Song:

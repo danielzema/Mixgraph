@@ -20,6 +20,8 @@ function Playlists() {
   const [showNewPlaylist, setShowNewPlaylist] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [showAddTrack, setShowAddTrack] = useState(false)
+  const [draggedIndex, setDraggedIndex] = useState(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -103,6 +105,46 @@ function Playlists() {
     const pos2 = playlistTracks[index + 1].position
     await reorderPlaylistTracks(selectedPlaylist.id, pos1, pos2)
     await loadPlaylistTracks(selectedPlaylist.id)
+  }
+
+  // Drag and drop handlers
+  function handleDragStart(e, index) {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index)
+  }
+
+  function handleDragOver(e, index) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (index !== draggedIndex) {
+      setDragOverIndex(index)
+    }
+  }
+
+  function handleDragLeave(e) {
+    setDragOverIndex(null)
+  }
+
+  async function handleDrop(e, targetIndex) {
+    e.preventDefault()
+    setDragOverIndex(null)
+    
+    if (draggedIndex === null || draggedIndex === targetIndex) {
+      setDraggedIndex(null)
+      return
+    }
+
+    const pos1 = playlistTracks[draggedIndex].position
+    const pos2 = playlistTracks[targetIndex].position
+    await reorderPlaylistTracks(selectedPlaylist.id, pos1, pos2)
+    await loadPlaylistTracks(selectedPlaylist.id)
+    setDraggedIndex(null)
+  }
+
+  function handleDragEnd() {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
   }
 
   return (
@@ -212,8 +254,18 @@ function Playlists() {
                   const transition = nextTrack ? getTransitionBetween(track.id, nextTrack.id) : null
                   
                   return (
-                    <div key={`${track.id}-${index}`} className="setlist-item">
+                    <div 
+                      key={`${track.id}-${index}`} 
+                      className={`setlist-item ${draggedIndex === index ? 'dragging' : ''} ${dragOverIndex === index ? 'drag-over' : ''}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                      onDragEnd={handleDragEnd}
+                    >
                       <div className="setlist-track">
+                        <div className="drag-handle" title="Drag to reorder">⋮⋮</div>
                         <div className="track-number">{index + 1}</div>
                         <div className="track-info">
                           <div className="track-title">{track.title}</div>
@@ -230,7 +282,7 @@ function Playlists() {
                             disabled={index === 0}
                             title="Move up"
                           >
-                            ↑
+                            ▲
                           </button>
                           <button 
                             className="control-btn"
@@ -238,7 +290,7 @@ function Playlists() {
                             disabled={index === playlistTracks.length - 1}
                             title="Move down"
                           >
-                            ↓
+                            ▼
                           </button>
                           <button 
                             className="control-btn remove"
@@ -255,15 +307,23 @@ function Playlists() {
                         <div className={`transition-indicator ${transition ? 'has-transition' : 'no-transition'}`}>
                           {transition ? (
                             <>
-                              <span className="transition-arrow">↓</span>
-                              <span className="transition-type">{transition.transition_type}</span>
-                              <span className="transition-rating">{'⭐'.repeat(transition.rating)}</span>
+                              {transition.comment && (
+                                <div className="transition-comment">💬 {transition.comment}</div>
+                              )}
+                              <div className="transition-row">
+                                <span className="transition-arrow">↓</span>
+                                <span className="transition-type">{transition.transition_type}</span>
+                                <span className="transition-rating">
+                                  {'⭐'.repeat(transition.rating)}
+                                  <span className="empty-stars">{'☆'.repeat(5 - transition.rating)}</span>
+                                </span>
+                              </div>
                             </>
                           ) : (
-                            <>
+                            <div className="transition-row">
                               <span className="transition-arrow missing">↓</span>
                               <span className="no-transition-text">No transition defined</span>
-                            </>
+                            </div>
                           )}
                         </div>
                       )}

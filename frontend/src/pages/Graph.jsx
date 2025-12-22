@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getGraphData, getFolderGraphData, getPlaylistGraphData, getFolders, getPlaylists } from '../api'
+import { getGraphData, getFolderGraphData, getPlaylistGraphData, getFolders, getPlaylists, getPlaylistTracks } from '../api'
 
 function Graph() {
   const [folders, setFolders] = useState([])
@@ -7,9 +7,14 @@ function Graph() {
   const [viewType, setViewType] = useState('all') // 'all', 'folder', 'playlist'
   const [selectedFolder, setSelectedFolder] = useState(null)
   const [selectedPlaylist, setSelectedPlaylist] = useState(null)
+  const [highlightedTrackIds, setHighlightedTrackIds] = useState(new Set())
+  const [highlightedEdgePairs, setHighlightedEdgePairs] = useState(new Set())
   const [graphData, setGraphData] = useState({ nodes: [], edges: [] })
   const [loading, setLoading] = useState(true)
+  const [layoutProgress, setLayoutProgress] = useState(0)
+  const [layoutComplete, setLayoutComplete] = useState(false)
   const [selectedNode, setSelectedNode] = useState(null)
+  const [selectedEdge, setSelectedEdge] = useState(null)
   const [nodePositions, setNodePositions] = useState({})
   const [dragging, setDragging] = useState(null)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
@@ -35,10 +40,29 @@ function Graph() {
       let data
       if (viewType === 'folder' && selectedFolder) {
         data = await getFolderGraphData(selectedFolder.id)
-      } else if (viewType === 'playlist' && selectedPlaylist) {
-        data = await getPlaylistGraphData(selectedPlaylist.id)
+        setHighlightedTrackIds(new Set())
+        setHighlightedEdgePairs(new Set())
       } else {
+        // Always load all graph data
         data = await getGraphData()
+        
+        // If playlist selected, get its track IDs for highlighting
+        if (viewType === 'playlist' && selectedPlaylist) {
+          const playlistTracks = await getPlaylistTracks(selectedPlaylist.id)
+          setHighlightedTrackIds(new Set(playlistTracks.map(t => t.id)))
+          
+          // Create edge pairs for consecutive tracks in playlist order
+          const edgePairs = new Set()
+          for (let i = 0; i < playlistTracks.length - 1; i++) {
+            const fromId = playlistTracks[i].id
+            const toId = playlistTracks[i + 1].id
+            edgePairs.add(`${fromId}-${toId}`)
+          }
+          setHighlightedEdgePairs(edgePairs)
+        } else {
+          setHighlightedTrackIds(new Set())
+          setHighlightedEdgePairs(new Set())
+        }
       }
       setGraphData(data)
       
@@ -63,13 +87,16 @@ function Graph() {
     setLoading(false)
   }
 
-  // Apply simple force-directed layout
+  // Apply force-directed layout with edge crossing minimization
   useEffect(() => {
     if (graphData.nodes.length === 0) return
     
+    setLayoutProgress(0)
+    setLayoutComplete(false)
+    
     let animationFrame
     let iterations = 0
-    const maxIterations = 100
+    const maxIterations = 150
     
     function applyForces() {
       if (iterations >= maxIterations) return
@@ -79,7 +106,7 @@ function Graph() {
         const nodes = graphData.nodes
         const edges = graphData.edges
         
-        // Repulsion between all nodes
+        // Stronger repulsion between all nodes to spread them out
         for (let i = 0; i < nodes.length; i++) {
           for (let j = i + 1; j < nodes.length; j++) {
             const nodeA = nodes[i]
@@ -92,7 +119,8 @@ function Graph() {
             const dx = posB.x - posA.x
             const dy = posB.y - posA.y
             const dist = Math.sqrt(dx * dx + dy * dy) || 1
-            const force = 5000 / (dist * dist)
+            // Increased repulsion force for better spacing
+            const force = 8000 / (dist * dist)
             
             const fx = (dx / dist) * force
             const fy = (dy / dist) * force
@@ -102,7 +130,7 @@ function Graph() {
           }
         }
         
-        // Attraction along edges
+        // Attraction along edges - pull connected nodes closer but not too close
         edges.forEach(edge => {
           const posA = newPositions[edge.from_track_id]
           const posB = newPositions[edge.to_track_id]
@@ -112,7 +140,9 @@ function Graph() {
           const dx = posB.x - posA.x
           const dy = posB.y - posA.y
           const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          const force = (dist - 150) * 0.05
+          // Ideal edge length of 120, gentler attraction
+          const idealLength = 120
+          const force = (dist - idealLength) * 0.03
           
           const fx = (dx / dist) * force
           const fy = (dy / dist) * force
@@ -121,18 +151,63 @@ function Graph() {
           newPositions[edge.to_track_id] = { x: posB.x - fx, y: posB.y - fy }
         })
         
-        // Keep nodes in bounds
+        // Push nodes away from edges they don't belong to (reduce crossings)
+        edges.forEach(edge => {
+          const posA = newPositions[edge.from_track_id]
+          const posB = newPositions[edge.to_track_id]
+          if (!posA || !posB) return
+          
+          nodes.forEach(node => {
+            if (node.id === edge.from_track_id || node.id === edge.to_track_id) return
+            const posN = newPositions[node.id]
+            if (!posN) return
+            
+            // Calculate distance from node to edge line
+            const edgeDx = posB.x - posA.x
+            const edgeDy = posB.y - posA.y
+            const edgeLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy) || 1
+            
+            // Vector from A to node
+            const toNodeX = posN.x - posA.x
+            const toNodeY = posN.y - posA.y
+            
+            // Project onto edge
+            const dot = (toNodeX * edgeDx + toNodeY * edgeDy) / edgeLen
+            const t = Math.max(0, Math.min(edgeLen, dot)) / edgeLen
+            
+            // Closest point on edge
+            const closestX = posA.x + t * edgeDx
+            const closestY = posA.y + t * edgeDy
+            
+            // Distance from node to edge
+            const distToEdge = Math.sqrt((posN.x - closestX) ** 2 + (posN.y - closestY) ** 2) || 1
+            
+            // If too close to edge, push away
+            if (distToEdge < 60) {
+              const pushForce = (60 - distToEdge) * 0.1
+              const pushX = (posN.x - closestX) / distToEdge * pushForce
+              const pushY = (posN.y - closestY) / distToEdge * pushForce
+              newPositions[node.id] = { x: posN.x + pushX, y: posN.y + pushY }
+            }
+          })
+        })
+        
+        // Keep nodes in bounds with more padding
         Object.keys(newPositions).forEach(id => {
-          newPositions[id].x = Math.max(50, Math.min(750, newPositions[id].x))
-          newPositions[id].y = Math.max(50, Math.min(550, newPositions[id].y))
+          newPositions[id].x = Math.max(60, Math.min(740, newPositions[id].x))
+          newPositions[id].y = Math.max(60, Math.min(540, newPositions[id].y))
         })
         
         return newPositions
       })
       
       iterations++
+      setLayoutProgress(Math.round((iterations / maxIterations) * 100))
+      
       if (iterations < maxIterations) {
         animationFrame = requestAnimationFrame(applyForces)
+      } else {
+        setLayoutComplete(true)
       }
     }
     
@@ -183,12 +258,6 @@ function Graph() {
       setIsPanning(true)
       setPanStart({ x: e.clientX, y: e.clientY })
     }
-  }, [])
-
-  const handleWheel = useCallback((e) => {
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? 0.9 : 1.1
-    setZoom(prev => Math.max(0.3, Math.min(3, prev * delta)))
   }, [])
 
   // Calculate arrow path with curve
@@ -320,6 +389,16 @@ function Graph() {
             <h3>No tracks to display</h3>
             <p>{viewType !== 'all' ? 'Add tracks to see the graph' : 'Import some tracks to see the graph'}</p>
           </div>
+        ) : !layoutComplete ? (
+          <div className="graph-building">
+            <div className="building-text">
+              Building<span className="building-dots"></span>
+            </div>
+            <div className="progress-container">
+              <div className="progress-bar" style={{ width: `${layoutProgress}%` }}></div>
+            </div>
+            <div className="progress-text">{layoutProgress}%</div>
+          </div>
         ) : (
           <svg
             ref={svgRef}
@@ -328,7 +407,6 @@ function Graph() {
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             onMouseDown={handleSvgMouseDown}
-            onWheel={handleWheel}
             style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
           >
             <defs>
@@ -353,17 +431,38 @@ function Graph() {
                 const to = nodePositions[edge.to_track_id]
                 if (!from || !to) return null
                 
+                const isSelected = selectedEdge?.id === edge.id
+                // Only highlight edges that connect consecutive tracks in playlist order
+                const edgeKey = `${edge.from_track_id}-${edge.to_track_id}`
+                const isHighlighted = highlightedEdgePairs.has(edgeKey)
+                
                 return (
-                  <g key={edge.id} className="graph-edge">
+                  <g 
+                    key={edge.id} 
+                    className={`graph-edge ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSelectedEdge(isSelected ? null : edge)
+                      setSelectedNode(null)
+                    }}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {/* Invisible wider path for easier clicking */}
                     <path
                       d={getArrowPath(from, to)}
-                      stroke={`rgba(233, 69, 96, ${0.3 + edge.rating * 0.15})`}
-                      strokeWidth={1 + edge.rating * 0.5}
+                      stroke="transparent"
+                      strokeWidth={15}
+                      fill="none"
+                    />
+                    <path
+                      d={getArrowPath(from, to)}
+                      stroke={isSelected ? '#fff' : isHighlighted ? '#4ade80' : `rgba(233, 69, 96, ${0.3 + edge.rating * 0.15})`}
+                      strokeWidth={isSelected ? 3 : isHighlighted ? 3 : 1 + edge.rating * 0.5}
                       fill="none"
                     />
                     <path
                       d={getArrowHead(from, to)}
-                      fill={`rgba(233, 69, 96, ${0.5 + edge.rating * 0.1})`}
+                      fill={isSelected ? '#fff' : isHighlighted ? '#4ade80' : `rgba(233, 69, 96, ${0.5 + edge.rating * 0.1})`}
                     />
                   </g>
                 )
@@ -377,21 +476,41 @@ function Graph() {
                 const isSelected = selectedNode?.id === node.id
                 const hasOutgoing = outgoingCount(node.id) > 0
                 const hasIncoming = incomingCount(node.id) > 0
+                const isHighlighted = highlightedTrackIds.size > 0 && highlightedTrackIds.has(node.id)
+                
+                // Determine fill color - keep normal colors, only change highlighted ones
+                let fillColor
+                if (isSelected) {
+                  fillColor = '#e94560'
+                } else if (isHighlighted) {
+                  fillColor = '#22c55e' // Green for highlighted
+                } else if (hasOutgoing && hasIncoming) {
+                  fillColor = '#2d4a7c'
+                } else if (hasOutgoing) {
+                  fillColor = '#1a5c3a'
+                } else if (hasIncoming) {
+                  fillColor = '#5c3a1a'
+                } else {
+                  fillColor = '#3a3a5c'
+                }
                 
                 return (
                   <g
                     key={node.id}
-                    className={`graph-node ${isSelected ? 'selected' : ''}`}
+                    className={`graph-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
                     transform={`translate(${pos.x}, ${pos.y})`}
                     onMouseDown={e => handleMouseDown(e, node.id)}
-                    onClick={() => setSelectedNode(isSelected ? null : node)}
+                    onClick={() => {
+                      setSelectedNode(isSelected ? null : node)
+                      setSelectedEdge(null)
+                    }}
                     style={{ cursor: 'pointer' }}
                   >
                     <circle
-                      r={25}
-                      fill={isSelected ? '#e94560' : hasOutgoing && hasIncoming ? '#2d4a7c' : hasOutgoing ? '#1a5c3a' : hasIncoming ? '#5c3a1a' : '#3a3a5c'}
-                      stroke={isSelected ? '#fff' : '#e94560'}
-                      strokeWidth={isSelected ? 3 : 1.5}
+                      r={isHighlighted ? 28 : 25}
+                      fill={fillColor}
+                      stroke={isSelected ? '#fff' : isHighlighted ? '#4ade80' : '#e94560'}
+                      strokeWidth={isSelected ? 3 : isHighlighted ? 3 : 1.5}
                     />
                     <text
                       textAnchor="middle"
@@ -425,15 +544,14 @@ function Graph() {
             </g>
           </svg>
         )}
-      </div>
 
-      {/* Node details panel */}
-      {selectedNode && (
-        <div className="node-details">
-          <h3>{selectedNode.title}</h3>
-          <p className="artist">{selectedNode.artist}</p>
-          <div className="node-meta">
-            <span className="bpm-badge">{selectedNode.bpm?.toFixed(1)} BPM</span>
+        {/* Node details panel */}
+        {selectedNode && (
+          <div className="node-details">
+            <h3>{selectedNode.title}</h3>
+            <p className="artist">{selectedNode.artist}</p>
+            <div className="node-meta">
+              <span className="bpm-badge">{selectedNode.bpm?.toFixed(1)} BPM</span>
             <span className="key-badge">{selectedNode.key || 'N/A'}</span>
           </div>
           <div className="node-stats">
@@ -469,6 +587,84 @@ function Graph() {
           </button>
         </div>
       )}
+
+      {/* Edge details panel */}
+      {selectedEdge && (() => {
+        const fromNode = graphData.nodes.find(n => n.id === selectedEdge.from_track_id)
+        const toNode = graphData.nodes.find(n => n.id === selectedEdge.to_track_id)
+        return (
+          <div className="edge-details">
+            <h3>Transition Details</h3>
+            
+            <div className="edge-tracks">
+              <div className="edge-track from">
+                <span className="edge-track-label">FROM</span>
+                <h4>{fromNode?.title}</h4>
+                <p className="artist">{fromNode?.artist}</p>
+                <div className="edge-track-meta">
+                  <span className="bpm-badge">{fromNode?.bpm?.toFixed(1)} BPM</span>
+                  <span className="key-badge">{fromNode?.key || 'N/A'}</span>
+                </div>
+              </div>
+              
+              <div className="edge-arrow">↓</div>
+              
+              <div className="edge-track to">
+                <span className="edge-track-label">TO</span>
+                <h4>{toNode?.title}</h4>
+                <p className="artist">{toNode?.artist}</p>
+                <div className="edge-track-meta">
+                  <span className="bpm-badge">{toNode?.bpm?.toFixed(1)} BPM</span>
+                  <span className="key-badge">{toNode?.key || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="edge-info">
+              <div className="edge-info-row">
+                <span className="edge-info-label">Type</span>
+                <span className="type-badge">{selectedEdge.transition_type}</span>
+              </div>
+              <div className="edge-info-row">
+                <span className="edge-info-label">Rating</span>
+                <span className="stars">{'⭐'.repeat(selectedEdge.rating)}{'☆'.repeat(5 - selectedEdge.rating)}</span>
+              </div>
+              {selectedEdge.notes && (
+                <div className="edge-info-row notes">
+                  <span className="edge-info-label">Notes</span>
+                  <p className="edge-notes">{selectedEdge.notes}</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="edge-actions">
+              <button 
+                className="btn btn-small" 
+                onClick={() => {
+                  setSelectedNode(fromNode)
+                  setSelectedEdge(null)
+                }}
+              >
+                View From Track
+              </button>
+              <button 
+                className="btn btn-small" 
+                onClick={() => {
+                  setSelectedNode(toNode)
+                  setSelectedEdge(null)
+                }}
+              >
+                View To Track
+              </button>
+            </div>
+            
+            <button className="btn btn-secondary btn-small" onClick={() => setSelectedEdge(null)}>
+              Close
+            </button>
+          </div>
+        )
+      })()}
+      </div>
 
       {/* Legend */}
       <div className="graph-legend">

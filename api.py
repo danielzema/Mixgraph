@@ -659,6 +659,49 @@ def get_track(track_id):
     return jsonify({"error": "Track not found"}), 404
 
 
+@app.route("/api/tracks/<int:track_id>", methods=["PUT"])
+def update_track(track_id):
+    data = request.json
+    conn = get_db()
+    
+    # Build update query dynamically based on provided fields
+    updates = []
+    values = []
+    
+    if "title" in data:
+        updates.append("title = ?")
+        values.append(data["title"])
+    if "artist" in data:
+        updates.append("artist = ?")
+        values.append(data["artist"])
+    if "bpm" in data:
+        updates.append("bpm = ?")
+        values.append(data["bpm"])
+    if "key" in data:
+        updates.append("key = ?")
+        values.append(data["key"])
+    if "genre" in data:
+        updates.append("genre = ?")
+        values.append(data["genre"])
+    
+    if updates:
+        values.append(track_id)
+        conn.execute(
+            f"UPDATE tracks SET {', '.join(updates)} WHERE id = ?",
+            values
+        )
+        conn.commit()
+    
+    row = conn.execute(
+        "SELECT * FROM tracks WHERE id = ?", (track_id,)
+    ).fetchone()
+    conn.close()
+    
+    if row:
+        return jsonify(dict(row))
+    return jsonify({"error": "Track not found"}), 404
+
+
 @app.route("/api/tracks/<int:track_id>", methods=["DELETE"])
 def delete_track(track_id):
     conn = get_db()

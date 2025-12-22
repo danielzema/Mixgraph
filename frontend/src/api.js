@@ -28,6 +28,15 @@ export async function createTrack(trackData) {
   return res.json()
 }
 
+export async function updateTrack(id, trackData) {
+  const res = await fetch(`${API_BASE}/tracks/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(trackData)
+  })
+  return res.json()
+}
+
 export async function searchTracks(query) {
   const res = await fetch(`${API_BASE}/tracks/search?q=${encodeURIComponent(query)}`)
   return res.json()

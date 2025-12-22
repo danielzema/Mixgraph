@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { 
   getTracks, 
   deleteTrack,
+  updateTrack,
   createTrack,
   getFolders, 
   createFolder, 
@@ -25,6 +26,7 @@ function Tracks() {
   const [importing, setImporting] = useState(false)
   const [showAddTrack, setShowAddTrack] = useState(false)
   const [showCreateTrack, setShowCreateTrack] = useState(false)
+  const [editingTrack, setEditingTrack] = useState(null)
   const [newTrack, setNewTrack] = useState({
     title: '',
     artist: '',
@@ -86,6 +88,15 @@ function Tracks() {
       if (selectedFolder) {
         loadFolderTracks(selectedFolder.id)
       }
+    }
+  }
+
+  async function handleUpdateTrack(id, data) {
+    await updateTrack(id, data)
+    setEditingTrack(null)
+    loadData()
+    if (selectedFolder) {
+      loadFolderTracks(selectedFolder.id)
     }
   }
 
@@ -396,21 +407,12 @@ function Tracks() {
                       <td><span className="bpm-badge">{track.bpm?.toFixed(1)}</span></td>
                       <td><span className="key-badge">{track.key || 'N/A'}</span></td>
                       <td className="actions">
-                        {selectedFolder ? (
-                          <button 
-                            className="btn btn-secondary btn-small"
-                            onClick={() => handleRemoveFromFolder(track.id, track.title)}
-                          >
-                            Remove
-                          </button>
-                        ) : (
-                          <button 
-                            className="btn btn-danger btn-small"
-                            onClick={() => handleDeleteTrack(track.id, track.title)}
-                          >
-                            Delete
-                          </button>
-                        )}
+                        <button 
+                          className="btn btn-secondary"
+                          onClick={() => setEditingTrack(track)}
+                        >
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -551,8 +553,128 @@ function Tracks() {
           </div>
         </div>
       )}
+
+      {/* Edit Track Modal */}
+      {editingTrack && (
+        <EditTrackModal
+          track={editingTrack}
+          onClose={() => setEditingTrack(null)}
+          onSave={(data) => handleUpdateTrack(editingTrack.id, data)}
+          onDelete={() => handleDeleteTrack(editingTrack.id, editingTrack.title)}
+        />
+      )}
     </div>
   )
 }
+
+
+function EditTrackModal({ track, onClose, onSave, onDelete }) {
+  const [title, setTitle] = useState(track.title || '')
+  const [artist, setArtist] = useState(track.artist || '')
+  const [bpm, setBpm] = useState(track.bpm || '')
+  const [key, setKey] = useState(track.key || '')
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    onSave({
+      title,
+      artist,
+      bpm: bpm ? parseFloat(bpm) : null,
+      key: key || null
+    })
+  }
+
+  function handleDelete() {
+    if (confirm(`Delete "${track.title}"?\n\nThis will also remove all transitions involving this track.`)) {
+      onDelete()
+      onClose()
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <h2>Edit Track</h2>
+        
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="edit-title">Title *</label>
+            <input
+              id="edit-title"
+              type="text"
+              className="form-input"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Track title"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="edit-artist">Artist *</label>
+            <input
+              id="edit-artist"
+              type="text"
+              className="form-input"
+              value={artist}
+              onChange={e => setArtist(e.target.value)}
+              placeholder="Artist name"
+              required
+            />
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="edit-bpm">BPM</label>
+              <input
+                id="edit-bpm"
+                type="number"
+                step="0.1"
+                className="form-input"
+                value={bpm}
+                onChange={e => setBpm(e.target.value)}
+                placeholder="120.0"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="edit-key">Key</label>
+              <input
+                id="edit-key"
+                type="text"
+                className="form-input"
+                value={key}
+                onChange={e => setKey(e.target.value)}
+                placeholder="8A"
+              />
+            </div>
+          </div>
+
+          <div className="modal-actions">
+            <button type="submit" className="btn btn-primary">
+              Save Changes
+            </button>
+            <button 
+              type="button"
+              className="btn btn-danger"
+              onClick={handleDelete}
+            >
+              Delete Track
+            </button>
+            <button 
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 
 export default Tracks

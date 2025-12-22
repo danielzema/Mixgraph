@@ -768,6 +768,20 @@ def delete_transition(trans_id):
     return jsonify({"success": True})
 
 
+@app.route("/api/transitions/<int:trans_id>", methods=["PUT"])
+def update_transition(trans_id):
+    data = request.json
+    conn = get_db()
+    conn.execute("""
+        UPDATE transitions 
+        SET rating = ?, transition_type = ?, notes = ?
+        WHERE id = ?
+    """, (data.get("rating"), data.get("transition_type"), data.get("notes", ""), trans_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+
 @app.route("/api/tracks/<int:track_id>/transitions", methods=["GET"])
 def get_track_transitions(track_id):
     """Get all transitions from a specific track."""

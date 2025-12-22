@@ -56,6 +56,15 @@ export async function deleteTransition(id) {
   return res.json()
 }
 
+export async function updateTransition(id, data) {
+  const res = await fetch(`${API_BASE}/transitions/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  return res.json()
+}
+
 export async function getTrackTransitions(trackId) {
   const res = await fetch(`${API_BASE}/tracks/${trackId}/transitions`)
   return res.json()

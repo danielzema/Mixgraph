@@ -337,7 +337,7 @@ function DJMode() {
           ← Back
         </button>
         <span className="mode-label">
-          {mode === 'freestyle' ? '🎤 Freestyle' : `� ${selectedFolder?.name}`}
+          {mode === 'freestyle' ? '🎤 Freestyle' : `📋 ${selectedPlaylist?.name}`}
         </span>
         {mode === 'playlist' && (
           <span className="position-label">
@@ -348,19 +348,26 @@ function DJMode() {
       
       <div className="dj-mode">
         <div className="card current-track">
-          <div className="current-track-header">
-            <div className="now-playing-label">NOW PLAYING</div>
-            <button className="btn btn-secondary" onClick={reset}>
-              Reset
-            </button>
-          </div>
+          <span className="now-playing-label">NOW PLAYING</span>
           
           <h2 className="current-title">{currentTrack.title}</h2>
           <p className="current-artist">{currentTrack.artist}</p>
           
-          <div className="track-meta">
-            <span className="bpm-badge">{currentTrack.bpm?.toFixed(1)} BPM</span>
-            <span className="key-badge">{currentTrack.key || 'N/A'}</span>
+          <div className="current-track-meta">
+            <div className="meta-item">
+              <span className="meta-label">BPM</span>
+              <span className="meta-value">{currentTrack.bpm?.toFixed(1)}</span>
+            </div>
+            <div className="meta-item">
+              <span className="meta-label">Key</span>
+              <span className="meta-value">{currentTrack.key || 'N/A'}</span>
+            </div>
+            {currentTrack.genre && (
+              <div className="meta-item">
+                <span className="meta-label">Genre</span>
+                <span className="meta-value">{currentTrack.genre}</span>
+              </div>
+            )}
           </div>
 
           {/* Playlist navigation */}
@@ -383,16 +390,33 @@ function DJMode() {
             </div>
           )}
 
-          {history.length > 1 && (
-            <div className="history">
-              <h3>Set History</h3>
-              <div className="history-list">
-                {history.map((track, i) => (
-                  <span key={i} className="history-item">
-                    {i + 1}. {track.title}
-                  </span>
-                ))}
-              </div>
+          {/* Jump to any track (Freestyle mode) */}
+          {mode === 'freestyle' && (
+            <div className="jump-to-track-box">
+              <span className="jump-label">JUMP TO ANY TRACK</span>
+              <input
+                type="text"
+                className="jump-search-input"
+                placeholder="Search for another track..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {searchResults.length > 0 && (
+                <div className="jump-search-results">
+                  {searchResults.map(track => (
+                    <div 
+                      key={track.id}
+                      className="jump-search-result"
+                      onClick={() => selectTrack(track)}
+                    >
+                      <div className="result-title">{track.title}</div>
+                      <div className="result-meta">
+                        {track.artist} • {track.bpm?.toFixed(1)} BPM • {track.key || 'N/A'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -400,37 +424,49 @@ function DJMode() {
         {/* Next Track Preview (Playlist Mode) */}
         {mode === 'playlist' && nextTrack && (
           <div className="card next-track-card">
-            <div className="next-track-header">
-              <span className="up-next-label">UP NEXT</span>
-              {nextTransition && (
-                <div className="transition-preview">
-                  <span className="type-badge">{nextTransition.transition_type}</span>
-                  <span className="stars">{'⭐'.repeat(nextTransition.rating)}</span>
+            <span className="up-next-label">UP NEXT</span>
+            
+            <h2 className="next-track-title">{nextTrack.title}</h2>
+            <p className="next-track-artist">{nextTrack.artist}</p>
+            
+            <div className="next-track-meta">
+              <div className="meta-item">
+                <span className="meta-label">BPM</span>
+                <span className="meta-value">{nextTrack.bpm?.toFixed(1)}</span>
+              </div>
+              <div className="meta-item">
+                <span className="meta-label">Key</span>
+                <span className="meta-value">{nextTrack.key || 'N/A'}</span>
+              </div>
+              {nextTrack.genre && (
+                <div className="meta-item">
+                  <span className="meta-label">Genre</span>
+                  <span className="meta-value">{nextTrack.genre}</span>
                 </div>
               )}
             </div>
-            
-            <div className="next-track-info" onClick={goToNextTrack}>
-              <div>
-                <h3>{nextTrack.title}</h3>
-                <p className="artist">{nextTrack.artist}</p>
-              </div>
-              <div className="track-badges">
-                <span className="bpm-badge">{nextTrack.bpm?.toFixed(1)}</span>
-                <span className="key-badge">{nextTrack.key || 'N/A'}</span>
-              </div>
-            </div>
 
-            {nextTransition?.notes && (
-              <div className="transition-notes-display">
-                <span className="notes-label">📝 Notes:</span>
-                <span className="notes-text">{nextTransition.notes}</span>
+            {nextTransition && (
+              <div className="transition-details">
+                <div className="transition-header">
+                  <span className="transition-label">TRANSITION</span>
+                </div>
+                <div className="transition-info">
+                  <span className="type-badge-large">{nextTransition.transition_type}</span>
+                  <span className="stars-large">{'⭐'.repeat(nextTransition.rating)}<span className="empty-stars">{'☆'.repeat(5 - nextTransition.rating)}</span></span>
+                </div>
+                {nextTransition.notes && (
+                  <div className="transition-notes-box">
+                    <span className="notes-icon">💬</span>
+                    <span className="notes-text">{nextTransition.notes}</span>
+                  </div>
+                )}
               </div>
             )}
             
             {!nextTransition && (
               <div className="no-transition-warning">
-                ⚠ No transition defined - go to Transitions tab to add one
+                ⚠️ No transition defined
               </div>
             )}
           </div>
@@ -438,7 +474,7 @@ function DJMode() {
 
         {/* Freestyle transitions */}
         {mode === 'freestyle' && (
-          <div className="card">
+          <div className="card available-transitions-card">
             <h2 style={{ marginBottom: 16 }}>
               Available Transitions ({transitions.length})
             </h2>
@@ -484,35 +520,16 @@ function DJMode() {
         )}
       </div>
 
-      {mode === 'freestyle' && (
-        <div className="card" style={{ marginTop: 20 }}>
-          <h3 style={{ marginBottom: 12, color: 'rgba(255,255,255,0.6)' }}>
-            Jump to any track
-          </h3>
-          <div className="search-container">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search for another track..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {searchResults.length > 0 && (
-              <div className="search-results">
-                {searchResults.map(track => (
-                  <div 
-                    key={track.id}
-                    className="search-result"
-                    onClick={() => selectTrack(track)}
-                  >
-                    <div style={{ fontWeight: 500 }}>{track.title}</div>
-                    <small style={{ color: 'rgba(255,255,255,0.5)' }}>
-                      {track.artist} • {track.bpm?.toFixed(1)} BPM • {track.key || 'N/A'}
-                    </small>
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* Set History */}
+      {history.length > 1 && (
+        <div className="card history-card">
+          <h3>Set History</h3>
+          <div className="history-list">
+            {history.map((track, i) => (
+              <span key={i} className="history-item">
+                {i + 1}. {track.title}
+              </span>
+            ))}
           </div>
         </div>
       )}

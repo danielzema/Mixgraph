@@ -61,7 +61,7 @@ function Transitions() {
         </div>
       ) : (
         <div className="table-container">
-          <table>
+          <table className="transitions-table">
             <thead>
               <tr>
                 <th>From</th>

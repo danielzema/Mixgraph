@@ -90,19 +90,230 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--surface-base);
-  background-image: 
-    radial-gradient(ellipse at 20% 0%, rgba(233, 69, 96, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(77, 171, 247, 0.05) 0%, transparent 50%);
   min-height: 100vh;
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Nightclub ambient lights */
+body::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(circle 450px at 15% 25%, rgba(233, 69, 96, 0.12) 0%, transparent 60%),
+    radial-gradient(circle 400px at 85% 75%, rgba(0, 191, 255, 0.1) 0%, transparent 55%),
+    radial-gradient(circle 350px at 55% 15%, rgba(138, 43, 226, 0.11) 0%, transparent 50%),
+    radial-gradient(circle 420px at 25% 85%, rgba(255, 165, 0, 0.09) 0%, transparent 55%),
+    radial-gradient(circle 380px at 90% 20%, rgba(0, 255, 127, 0.08) 0%, transparent 50%),
+    radial-gradient(circle 320px at 5% 55%, rgba(255, 20, 147, 0.11) 0%, transparent 50%),
+    radial-gradient(circle 300px at 70% 50%, rgba(255, 0, 255, 0.08) 0%, transparent 45%),
+    radial-gradient(circle 360px at 40% 40%, rgba(0, 255, 0, 0.06) 0%, transparent 50%);
+  animation: ambientLights 10s ease-in-out infinite;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(circle 400px at 75% 35%, rgba(255, 0, 128, 0.1) 0%, transparent 55%),
+    radial-gradient(circle 450px at 10% 80%, rgba(0, 255, 255, 0.09) 0%, transparent 60%),
+    radial-gradient(circle 350px at 95% 90%, rgba(255, 215, 0, 0.11) 0%, transparent 50%),
+    radial-gradient(circle 380px at 35% 10%, rgba(75, 0, 130, 0.11) 0%, transparent 55%),
+    radial-gradient(circle 320px at 60% 95%, rgba(0, 250, 154, 0.09) 0%, transparent 50%),
+    radial-gradient(circle 400px at 0% 25%, rgba(255, 99, 71, 0.1) 0%, transparent 55%),
+    radial-gradient(circle 280px at 50% 60%, rgba(255, 105, 180, 0.08) 0%, transparent 45%),
+    radial-gradient(circle 340px at 80% 5%, rgba(127, 255, 212, 0.07) 0%, transparent 50%);
+  animation: ambientLights2 13s ease-in-out infinite;
+}
+
+/* Third layer of lights */
+.app::before {
+  content: '';
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 0;
+  background: 
+    radial-gradient(circle 380px at 45% 70%, rgba(255, 69, 0, 0.08) 0%, transparent 50%),
+    radial-gradient(circle 420px at 20% 10%, rgba(30, 144, 255, 0.09) 0%, transparent 55%),
+    radial-gradient(circle 300px at 80% 45%, rgba(186, 85, 211, 0.1) 0%, transparent 45%),
+    radial-gradient(circle 360px at 65% 85%, rgba(50, 205, 50, 0.07) 0%, transparent 50%),
+    radial-gradient(circle 340px at 5% 40%, rgba(255, 140, 0, 0.09) 0%, transparent 50%),
+    radial-gradient(circle 400px at 95% 60%, rgba(199, 21, 133, 0.08) 0%, transparent 55%),
+    radial-gradient(circle 280px at 30% 55%, rgba(0, 206, 209, 0.09) 0%, transparent 45%),
+    radial-gradient(circle 320px at 75% 15%, rgba(255, 182, 193, 0.07) 0%, transparent 48%);
+  animation: ambientLights3 17s ease-in-out infinite;
+}
+
+/* Subtle scan lines overlay for club atmosphere */
+.app::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  animation: scanlines 8s linear infinite;
+}
+
+/* Pulsing vignette effect */
+#root::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.4) 100%);
+  animation: vignettePulse 8s ease-in-out infinite;
+}
+
+/* Floating particles effect */
+#root::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    radial-gradient(1px 1px at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 70%, rgba(255, 255, 255, 0.12) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 60%, rgba(255, 255, 255, 0.13) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 10% 80%, rgba(233, 69, 96, 0.2) 0%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 90% 40%, rgba(0, 191, 255, 0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 50%, rgba(138, 43, 226, 0.15) 0%, transparent 100%),
+    radial-gradient(1px 1px at 30% 10%, rgba(255, 255, 255, 0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 90%, rgba(255, 255, 255, 0.12) 0%, transparent 100%);
+  background-size: 250px 250px;
+  animation: floatingParticles 30s linear infinite;
+}
+
+@keyframes ambientLights {
+  0% {
+    transform: translate(0%, 0%) rotate(0deg);
+  }
+  20% {
+    transform: translate(6%, -4%) rotate(4deg);
+  }
+  40% {
+    transform: translate(-2%, 6%) rotate(-3deg);
+  }
+  60% {
+    transform: translate(-6%, -2%) rotate(5deg);
+  }
+  80% {
+    transform: translate(3%, -5%) rotate(-2deg);
+  }
+  100% {
+    transform: translate(0%, 0%) rotate(0deg);
+  }
+}
+
+@keyframes ambientLights2 {
+  0% {
+    transform: translate(0%, 0%) rotate(0deg);
+  }
+  25% {
+    transform: translate(-7%, 5%) rotate(-5deg);
+  }
+  50% {
+    transform: translate(5%, -7%) rotate(4deg);
+  }
+  75% {
+    transform: translate(-4%, -4%) rotate(-3deg);
+  }
+  100% {
+    transform: translate(0%, 0%) rotate(0deg);
+  }
+}
+
+@keyframes ambientLights3 {
+  0% {
+    transform: translate(0%, 0%) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translate(4%, 6%) rotate(6deg) scale(1.05);
+  }
+  66% {
+    transform: translate(-5%, -4%) rotate(-4deg) scale(0.95);
+  }
+  100% {
+    transform: translate(0%, 0%) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes scanlines {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100px;
+  }
+}
+
+@keyframes vignettePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes floatingParticles {
+  0% {
+    background-position: 0 0, 50px 50px, 100px 25px, 150px 75px, 200px 0, 25px 150px, 75px 100px, 125px 175px, 175px 125px;
+  }
+  100% {
+    background-position: 250px -250px, 300px -200px, 350px -225px, 400px -175px, 450px -250px, 275px -100px, 325px -150px, 375px -75px, 425px -125px;
+  }
 }
 
 .app {
   max-width: 1440px;
   margin: 0 auto;
   padding: 24px;
+  position: relative;
+  z-index: 1;
 }
 
 /* ============================================================================
@@ -277,9 +488,26 @@ th, td {
   text-overflow: ellipsis;
 }
 
-/* Column widths for tracks/transitions tables */
-th:nth-child(1), td:nth-child(1) { width: 50px; } /* # or From */
+/* Column widths for tracks table */
+th:nth-child(1), td:nth-child(1) { width: 50px; } /* # */
 th:last-child, td:last-child { width: 100px; } /* Actions */
+
+/* Tracks table specific column widths */
+.tracks-table th:nth-child(1), .tracks-table td:nth-child(1) { width: 50px; } /* # */
+.tracks-table th:nth-child(2), .tracks-table td:nth-child(2) { width: auto; } /* Title - flexible */
+.tracks-table th:nth-child(3), .tracks-table td:nth-child(3) { width: auto; } /* Artist - flexible */
+.tracks-table th:nth-child(4), .tracks-table td:nth-child(4) { width: 100px; } /* BPM */
+.tracks-table th:nth-child(5), .tracks-table td:nth-child(5) { width: 90px; } /* Key */
+.tracks-table th:nth-child(6), .tracks-table td:nth-child(6) { width: 100px; } /* Actions */
+
+/* Transitions table specific column widths */
+.transitions-table th:nth-child(1), .transitions-table td:nth-child(1) { width: auto; } /* From - flexible */
+.transitions-table th:nth-child(2), .transitions-table td:nth-child(2) { width: 40px; text-align: center; } /* Arrow */
+.transitions-table th:nth-child(3), .transitions-table td:nth-child(3) { width: auto; } /* To - flexible */
+.transitions-table th:nth-child(4), .transitions-table td:nth-child(4) { width: 180px; } /* Type */
+.transitions-table th:nth-child(5), .transitions-table td:nth-child(5) { width: 200px; } /* Rating */
+.transitions-table th:nth-child(6), .transitions-table td:nth-child(6) { width: 200px; } /* Notes */
+.transitions-table th:nth-child(7), .transitions-table td:nth-child(7) { width: 100px; } /* Actions */
 
 /* Track info cells with visual hierarchy */
 td .track-cell-title {
@@ -344,11 +572,13 @@ tr:hover {
    ============================================================================ */
 .btn {
   padding: 10px 18px;
-  border: none;
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
+  background: var(--surface-interactive);
+  color: var(--text-primary);
   transition: 
     all var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-elastic);
@@ -358,6 +588,11 @@ tr:hover {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
 }
 
 .btn::after {
@@ -412,15 +647,40 @@ tr:hover {
 }
 
 .btn-secondary {
-  background: var(--surface-interactive);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-default);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary:hover:not(:disabled) {
   background: var(--surface-hover);
   color: var(--text-primary);
-  border-color: var(--border-strong);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 1px var(--accent-primary-glow);
+}
+
+/* Start Set Button - Prominent CTA */
+.btn-start-set {
+  padding: 16px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  border: none;
+  box-shadow: 
+    var(--shadow-lg),
+    0 0 30px var(--accent-primary-glow),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.btn-start-set:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    var(--shadow-xl),
+    0 0 50px var(--accent-primary-glow),
+    inset 0 1px 0 rgba(255,255,255,0.25);
 }
 
 /* ============================================================================
@@ -1733,6 +1993,15 @@ body:has(.modal-overlay) {
   position: relative;
 }
 
+.graph-page.fullscreen {
+  background: var(--surface-base);
+  padding: 20px;
+}
+
+.graph-page.fullscreen .graph-container {
+  height: calc(100vh - 100px);
+}
+
 .graph-controls {
   display: flex;
   justify-content: space-between;
@@ -2309,6 +2578,21 @@ body:has(.modal-overlay) {
   border-color: rgba(233, 69, 96, 0.3);
 }
 
+.playlist-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 4px 10px;
+  background: rgba(77, 171, 247, 0.15);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-info);
+  border: 1px solid rgba(77, 171, 247, 0.25);
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
 .playlist-item-info {
   flex: 1;
 }
@@ -2338,6 +2622,31 @@ body:has(.modal-overlay) {
 
 .playlist-item:hover .delete-btn {
   opacity: 1;
+}
+
+/* Playlist Delete Button */
+.playlist-delete {
+  background: rgba(233, 69, 96, 0.15);
+  border: none;
+  color: var(--accent-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.playlist-item:hover .playlist-delete {
+  opacity: 1;
+}
+
+.playlist-delete:hover {
+  color: white;
+  background: var(--accent-primary);
 }
 
 /* Playlist Editor - Main Panel */
@@ -2491,7 +2800,7 @@ body:has(.modal-overlay) {
 }
 
 .transition-indicator.has-transition {
-  color: var(--accent-success);
+  /* Stars inherit gold color from .stars class */
 }
 
 .transition-indicator.no-transition {
@@ -2517,23 +2826,39 @@ body:has(.modal-overlay) {
 /* Transition indicator text alignment */
 .transition-indicator .transition-arrow {
   font-size: 1rem;
-  margin-right: 12px;
+  margin-right: 16px;
   width: 20px;
   text-align: center;
   flex-shrink: 0;
+  color: #b794f6;
+}
+
+.transition-indicator .transition-arrow.missing {
+  color: var(--text-disabled);
 }
 
 .transition-indicator .transition-type {
-  font-size: 0.85rem;
-  width: 100px;
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  background: rgba(138, 43, 226, 0.12);
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #b794f6;
+  border: 1px solid rgba(138, 43, 226, 0.2);
   flex-shrink: 0;
+  min-width: 90px;
 }
 
 .transition-indicator .transition-rating {
-  width: 90px;
-  text-align: right;
+  min-width: 120px;
+  text-align: left;
   flex-shrink: 0;
+  margin-left: 16px;
 }
 
 .transition-indicator .transition-rating .empty-stars {
@@ -3054,7 +3379,18 @@ body:has(.modal-overlay) {
 }
 
 .setlist-transition .transition-type {
-  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  background: rgba(138, 43, 226, 0.12);
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #b794f6;
+  border: 1px solid rgba(138, 43, 226, 0.2);
 }
 
 .setlist-transition .transition-rating {

@@ -24,6 +24,26 @@ function Graph() {
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
   const svgRef = useRef(null)
   const containerRef = useRef(null)
+  const graphPageRef = useRef(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      graphPageRef.current?.requestFullscreen()
+      setIsFullscreen(true)
+    } else {
+      document.exitFullscreen()
+      setIsFullscreen(false)
+    }
+  }
+
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
 
   useEffect(() => {
     getFolders().then(setFolders)
@@ -318,7 +338,7 @@ function Graph() {
     graphData.edges.filter(e => e.to_track_id === nodeId).length
 
   return (
-    <div className="graph-page">
+    <div className={`graph-page${isFullscreen ? ' fullscreen' : ''}`} ref={graphPageRef}>
       <div className="graph-controls">
         <div className="graph-filter">
           <label>View:</label>
@@ -378,6 +398,9 @@ function Graph() {
           <span>{Math.round(zoom * 100)}%</span>
           <button className="btn btn-small" onClick={() => setZoom(z => Math.max(0.3, z / 1.2))}>−</button>
           <button className="btn btn-small btn-secondary" onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }}>Reset</button>
+          <button className="btn btn-small btn-secondary" onClick={toggleFullscreen} title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
+            {isFullscreen ? '⛶' : '⛶'}
+          </button>
         </div>
       </div>
 

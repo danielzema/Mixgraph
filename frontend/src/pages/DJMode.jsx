@@ -233,7 +233,7 @@ function DJMode() {
               {tracks.length} tracks in setlist
             </p>
             
-            <button className="btn" onClick={startFromBeginning} style={{ marginBottom: 20 }}>
+            <button className="btn btn-primary btn-start-set" onClick={startFromBeginning}>
               ▶ Start from Beginning
             </button>
             

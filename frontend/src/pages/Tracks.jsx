@@ -387,7 +387,7 @@ function Tracks() {
             </div>
           ) : (
             <div className="table-container">
-              <table>
+              <table className="tracks-table">
                 <thead>
                   <tr>
                     <th>#</th>

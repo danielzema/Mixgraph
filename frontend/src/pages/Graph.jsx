@@ -691,18 +691,18 @@ function Graph() {
 
       {/* Legend */}
       <div className="graph-legend">
-        <h4>Legend</h4>
+        <h4>A song has...</h4>
         <div className="legend-item">
           <span className="legend-circle" style={{ background: '#2d4a7c' }}></span>
-          <span>Has transitions both ways</span>
+          <span>Transitions both ways</span>
         </div>
         <div className="legend-item">
           <span className="legend-circle" style={{ background: '#1a5c3a' }}></span>
-          <span>Only outgoing transitions</span>
+          <span>Only transitions from</span>
         </div>
         <div className="legend-item">
           <span className="legend-circle" style={{ background: '#5c3a1a' }}></span>
-          <span>Only incoming transitions</span>
+          <span>Only transitions to</span>
         </div>
         <div className="legend-item">
           <span className="legend-circle" style={{ background: '#3a3a5c' }}></span>

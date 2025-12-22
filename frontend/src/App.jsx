@@ -15,7 +15,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>🎧 Mixgraph</h1>
+        <h1>Mixgraph</h1>
         <nav className="nav-buttons">
           <button 
             className={`nav-btn ${isActive('/') ? 'active' : ''}`}

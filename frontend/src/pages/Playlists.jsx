@@ -152,7 +152,7 @@ function Playlists() {
       {/* Sidebar - Playlist List */}
       <div className="playlists-sidebar">
         <div className="sidebar-header">
-          <h3>📋 Playlists</h3>
+          <h3>📕 Playlists</h3>
           <button 
             className="btn btn-small"
             onClick={() => setShowNewPlaylist(true)}
@@ -196,7 +196,7 @@ function Playlists() {
                 className={`playlist-item ${selectedPlaylist?.id === playlist.id ? 'active' : ''}`}
                 onClick={() => setSelectedPlaylist(playlist)}
               >
-                <span className="playlist-icon">📋</span>
+                <span className="playlist-icon">📕</span>
                 <span className="playlist-name">{playlist.name}</span>
                 <span className="playlist-count">{playlist.track_count}</span>
                 <button
@@ -220,14 +220,14 @@ function Playlists() {
       <div className="playlists-main">
         {!selectedPlaylist ? (
           <div className="card empty-state-card">
-            <h2>📋 Select a Playlist</h2>
+            <h2>Select a Playlist</h2>
             <p>Choose a playlist from the sidebar to start building your set.</p>
           </div>
         ) : (
           <div className="card playlist-editor">
             <div className="playlist-header">
               <div>
-                <h2>📋 {selectedPlaylist.name}</h2>
+                <h2>📕 {selectedPlaylist.name}</h2>
                 <p className="playlist-subtitle">
                   {playlistTracks.length} tracks • {playlistTracks.length > 1 ? `${playlistTracks.length - 1} transitions` : 'No transitions yet'}
                 </p>

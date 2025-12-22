@@ -226,7 +226,7 @@ function Tracks() {
       {/* Sidebar - Folders */}
       <div className="folders-sidebar">
         <div className="sidebar-header">
-          <h3>📁 Playlists</h3>
+          <h3>📁 Music Folders</h3>
           <button 
             className="btn btn-small"
             onClick={() => setShowNewFolder(true)}

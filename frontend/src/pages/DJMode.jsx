@@ -156,16 +156,16 @@ function DJMode() {
             >
               <span className="mode-icon">🎤</span>
               <h3>Freestyle</h3>
-              <p>Search any track and see all available transitions</p>
+              <p>Search for any track and see all available transitions</p>
             </div>
             
             <div 
               className="mode-card"
               onClick={() => selectMode('playlist-select')}
             >
-              <span className="mode-icon">📋</span>
-              <h3>Setlist Mode</h3>
-              <p>Play through a playlist in order with defined transitions</p>
+              <span className="mode-icon">📕</span>
+              <h3>Setlist</h3>
+              <p>Play through one of your premade playlists in order</p>
             </div>
           </div>
         </div>
@@ -181,7 +181,7 @@ function DJMode() {
           <button className="btn btn-secondary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
-          <h2>📋 Choose a Playlist</h2>
+          <h2>📕 Choose a Playlist</h2>
         </div>
         
         {playlists.length > 0 ? (
@@ -192,7 +192,7 @@ function DJMode() {
                 className="playlist-select-item"
                 onClick={() => selectPlaylist(playlist)}
               >
-                <span className="playlist-icon">📋</span>
+                <span className="playlist-icon">📕</span>
                 <div className="playlist-info">
                   <div className="playlist-name">{playlist.name}</div>
                   <div className="playlist-count">{playlist.track_count} tracks</div>
@@ -204,7 +204,7 @@ function DJMode() {
         ) : (
           <div className="empty-state">
             <h3>No playlists yet</h3>
-            <p>Create a playlist in the Playlists tab first</p>
+            <p>Create a playlist in the<span style={{ color: 'var(--accent-primary)' }}>Playlist</span> tab first</p>
           </div>
         )}
       </div>
@@ -233,8 +233,8 @@ function DJMode() {
               {tracks.length} tracks in setlist
             </p>
             
-            <button className="btn btn-primary btn-start-set" onClick={startFromBeginning}>
-              ▶ Start from Beginning
+            <button className="btn btn-primary btn-start-set" onClick={startFromBeginning} style={{ marginBottom: 32 }}>
+              ▶ Play from the beginning
             </button>
             
             <div className="setlist-preview">
@@ -377,15 +377,17 @@ function DJMode() {
                 className="btn btn-secondary"
                 onClick={goToPrevTrack}
                 disabled={currentIndex <= 0}
+                style={{ minWidth: 120, display: 'flex', alignItems: 'center', gap: 8 }}
               >
-                ← Previous
+                <span style={{ fontSize: 18 }}>←</span> Previous
               </button>
               <button 
-                className="btn"
+                className="btn primary"
                 onClick={goToNextTrack}
                 disabled={currentIndex >= tracks.length - 1}
+                style={{ minWidth: 120, display: 'flex', alignItems: 'center', gap: 8 }}
               >
-                Next →
+                Next <span style={{ fontSize: 18 }}>→</span>
               </button>
             </div>
           )}
@@ -482,14 +484,9 @@ function DJMode() {
             {transitions.length === 0 ? (
               <div className="empty-state">
                 <h3>No transitions</h3>
-                <p>Add transitions from this track in the Transitions tab</p>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ marginTop: 16 }}
-                  onClick={() => setShowSearch(true)}
-                >
-                  Choose Different Track
-                </button>
+                <p>Add transitions from this track in the <span style={{ color: 'var(--accent-primary)' }}>Transitions</span> tab</p>
+                <p>or manually jump to another track using the</p>
+                <p>field under <span style={{ color: 'var(--accent-primary)' }}>NOW PLAYING</span></p>
               </div>
             ) : (
               <div className="transition-list">

@@ -116,15 +116,15 @@ function TrackBrowser({ onSelect, excludeIds = [], mode = 'tracks' }) {
         )}
 
         {searchMode === 'playlists' && selectedPlaylist && (
-          <div className="folder-filter">
+          <>
             <button 
               className="btn btn-small btn-secondary"
               onClick={() => setSelectedPlaylist(null)}
             >
               ← Back to playlists
             </button>
-            <span style={{ marginLeft: 12 }}>📋 {selectedPlaylist.name}</span>
-          </div>
+            <div className="playlist-name-label">📋 {selectedPlaylist.name}</div>
+          </>
         )}
         
         <div className="browser-search">

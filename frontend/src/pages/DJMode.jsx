@@ -159,29 +159,54 @@ function DJMode() {
               <p>Search any track and see all available transitions</p>
             </div>
             
-            <div className="mode-card playlist-mode">
+            <div 
+              className="mode-card"
+              onClick={() => selectMode('playlist-select')}
+            >
               <span className="mode-icon">📋</span>
               <h3>Setlist Mode</h3>
               <p>Play through a playlist in order with defined transitions</p>
-              
-              {playlists.length > 0 ? (
-                <div className="playlist-select">
-                  {playlists.map(playlist => (
-                    <button
-                      key={playlist.id}
-                      className="btn btn-secondary playlist-btn"
-                      onClick={(e) => { e.stopPropagation(); selectPlaylist(playlist) }}
-                    >
-                      📋 {playlist.name} ({playlist.track_count})
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="no-playlists">No playlists yet. Create one in Playlists tab.</p>
-              )}
             </div>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  // Playlist selection screen
+  if (mode === 'playlist-select') {
+    return (
+      <div className="card">
+        <div className="dj-header">
+          <button className="btn btn-secondary btn-small" onClick={backToModeSelect}>
+            ← Back
+          </button>
+          <h2>📋 Choose a Playlist</h2>
+        </div>
+        
+        {playlists.length > 0 ? (
+          <div className="playlist-list-select">
+            {playlists.map(playlist => (
+              <div
+                key={playlist.id}
+                className="playlist-select-item"
+                onClick={() => selectPlaylist(playlist)}
+              >
+                <span className="playlist-icon">📋</span>
+                <div className="playlist-info">
+                  <div className="playlist-name">{playlist.name}</div>
+                  <div className="playlist-count">{playlist.track_count} tracks</div>
+                </div>
+                <span className="playlist-arrow">→</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <h3>No playlists yet</h3>
+            <p>Create a playlist in the Playlists tab first</p>
+          </div>
+        )}
       </div>
     )
   }

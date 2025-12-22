@@ -442,6 +442,12 @@ tr:hover {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  overflow: hidden;
+}
+
+/* Prevent body scroll when modal is open */
+body:has(.modal-overlay) {
+  overflow: hidden;
 }
 
 .modal {
@@ -823,30 +829,52 @@ tr:hover {
   font-size: 0.9rem;
 }
 
-.mode-card.playlist-mode {
-  cursor: default;
-}
-
-.mode-card.playlist-mode:hover {
-  transform: none;
-}
-
-.playlist-select {
-  margin-top: 16px;
+/* Playlist Selection Screen */
+.playlist-list-select {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.playlist-btn {
-  text-align: left;
-  justify-content: flex-start;
+.playlist-select-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
 }
 
-.no-playlists {
-  margin-top: 12px;
-  font-style: italic;
-  color: rgba(255,255,255,0.4);
+.playlist-select-item:hover {
+  background: rgba(233, 69, 96, 0.15);
+  border-color: #e94560;
+}
+
+.playlist-select-item .playlist-icon {
+  font-size: 1.5rem;
+}
+
+.playlist-select-item .playlist-info {
+  flex: 1;
+}
+
+.playlist-select-item .playlist-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.playlist-select-item .playlist-count {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.9rem;
+}
+
+.playlist-select-item .playlist-arrow {
+  font-size: 1.5rem;
+  color: #e94560;
 }
 
 .dj-header {
@@ -1631,7 +1659,9 @@ tr:hover {
 .track-browser {
   display: flex;
   flex-direction: column;
-  height: 400px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .browser-controls {
@@ -1639,19 +1669,25 @@ tr:hover {
   gap: 16px;
   padding: 16px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
-  align-items: flex-end;
+  align-items: center;
+}
+
+.playlist-name-label {
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .folder-filter {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   min-width: 200px;
 }
 
 .folder-filter label {
   font-size: 0.85rem;
   color: rgba(255,255,255,0.6);
+  white-space: nowrap;
 }
 
 .folder-filter select {
@@ -1723,6 +1759,7 @@ tr:hover {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  min-height: 0;
 }
 
 .browser-track {
@@ -2045,6 +2082,7 @@ tr:hover {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .modal-header {

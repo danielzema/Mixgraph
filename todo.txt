@@ -1,0 +1,5 @@
+PLAYLIST not centered in card on the left, needs to be in the middle of the plus (level)
+
+Remove line from "Well done!" when end of playlist is reached.  
+
+When in freestyle mode and you want to save a set, a button should appear in set history for you to create a playlist from it. 

@@ -212,7 +212,7 @@ function Playlists() {
         </div>
 
         <div className="sidebar-hint">
-          <small>💡 Create a playlist to build your DJ sets with ordered transitions</small>
+          <small>💡 Build a DJ set by creating a playlist with ordered transitions</small>
         </div>
       </div>
 
@@ -221,7 +221,7 @@ function Playlists() {
         {!selectedPlaylist ? (
           <div className="card empty-state-card">
             <h2>Select a Playlist</h2>
-            <p>Choose a playlist from the sidebar to start building your set.</p>
+            <p>Choose a playlist from the sidebar or create a new one and start building your set.</p>
           </div>
         ) : (
           <div className="card playlist-editor">

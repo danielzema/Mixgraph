@@ -106,14 +106,6 @@ function DJMode() {
     }
   }
 
-  function reset() {
-    setCurrentTrack(null)
-    setCurrentIndex(-1)
-    setTransitions([])
-    setHistory([])
-    setShowSearch(true)
-  }
-
   function backToModeSelect() {
     setMode(null)
     setSelectedPlaylist(null)
@@ -156,7 +148,7 @@ function DJMode() {
             >
               <span className="mode-icon">🎤</span>
               <h3>Freestyle</h3>
-              <p>Search for any track and see all available transitions</p>
+              <p>See all available transitions and mix tracks freely</p>
             </div>
             
             <div 
@@ -178,7 +170,7 @@ function DJMode() {
     return (
       <div className="card">
         <div className="dj-header">
-          <button className="btn btn-secondary btn-small" onClick={backToModeSelect}>
+          <button className="btn btn-primary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
           <h2>📕 Choose a Playlist</h2>
@@ -216,7 +208,7 @@ function DJMode() {
     return (
       <div className="card">
         <div className="dj-header">
-          <button className="btn btn-secondary btn-small" onClick={backToModeSelect}>
+          <button className="btn btn-primary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
           <h2>📋 {selectedPlaylist?.name}</h2>
@@ -285,7 +277,7 @@ function DJMode() {
     return (
       <div className="card">
         <div className="dj-header">
-          <button className="btn btn-secondary btn-small" onClick={backToModeSelect}>
+          <button className="btn btn-primary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
           <h2>🎤 Freestyle Mode</h2>
@@ -333,7 +325,7 @@ function DJMode() {
   return (
     <div>
       <div className="dj-header-bar">
-        <button className="btn btn-secondary btn-small" onClick={backToModeSelect}>
+        <button className="btn btn-primary btn-small" onClick={backToModeSelect}>
           ← Back
         </button>
         <span className="mode-label">
@@ -424,6 +416,12 @@ function DJMode() {
         </div>
 
         {/* Next Track Preview (Playlist Mode) */}
+        {mode === 'playlist' && !nextTrack && (
+          <div className="card well-done-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220, boxShadow: 'none', border: 'none', borderLeft: 'none' }}>
+            <h2 style={{ color: 'var(--accent-primary)', textAlign: 'center', margin: 0, fontSize: '2.2rem', border: 'none', borderLeft: 'none' }}>Well done!</h2>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: 16 }}>You have reached the end of the playlist.</p>
+          </div>
+        )}
         {mode === 'playlist' && nextTrack && (
           <div className="card next-track-card">
             <span className="up-next-label">UP NEXT</span>

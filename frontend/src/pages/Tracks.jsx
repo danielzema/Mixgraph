@@ -226,11 +226,11 @@ function Tracks() {
       {/* Sidebar - Folders */}
       <div className="folders-sidebar">
         <div className="sidebar-header">
-          <h3>📁 Music Folders</h3>
+          <h3>📁 Track Folders</h3>
           <button 
             className="btn btn-small"
             onClick={() => setShowNewFolder(true)}
-            title="New Playlist"
+            title="Create New Track Folder"
           >
             +
           </button>
@@ -369,7 +369,7 @@ function Tracks() {
             >
               <div className="drop-zone-content">
                 <span className="drop-icon">📥</span>
-                <span>Drop Rekordbox .txt file here to import</span>
+                <span>Import a Rekordbox .txt file by dropping it here</span>
               </div>
             </div>
           )}

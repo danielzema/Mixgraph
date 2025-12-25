@@ -4,7 +4,7 @@ import argparse
 import sqlite3
 from pathlib import Path
 
-
+# Database schema for transitions 
 def init_transitions_table(db_path: Path):
     """Create transitions table if it doesn't exist."""
     conn = sqlite3.connect(db_path)
@@ -23,7 +23,7 @@ def init_transitions_table(db_path: Path):
     conn.commit()
     conn.close()
 
-
+# Add a transition
 def add_transition(db_path: Path, from_id: int, to_id: int, rating: int, transition_type: str):
     """Add a single transition."""
     conn = sqlite3.connect(db_path)
@@ -43,7 +43,7 @@ def add_transition(db_path: Path, from_id: int, to_id: int, rating: int, transit
     finally:
         conn.close()
 
-
+# List available tracks
 def list_tracks(db_path: Path, limit: int = 20):
     """List available tracks with their IDs."""
     conn = sqlite3.connect(db_path)

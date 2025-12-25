@@ -10,18 +10,19 @@ CORS(app)
 
 DB_PATH = Path("mixgraph.db")
 
-
+# Set up database connection
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
-
+# Initialize database tables
 def init_db():
     """Initialize database tables including folders and playlists."""
     conn = get_db()
     
     # Folders for organizing track library
+    # Folders can contain multiple tracks, and tracks can be in multiple folders.
     conn.execute("""
         CREATE TABLE IF NOT EXISTS folders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +79,7 @@ init_db()
 # FOLDERS/PLAYLISTS
 # ============================================================================
 
+# Return all folders with track counts
 @app.route("/api/folders", methods=["GET"])
 def get_folders():
     conn = get_db()
@@ -90,7 +92,7 @@ def get_folders():
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-
+# Create a new folder
 @app.route("/api/folders", methods=["POST"])
 def create_folder():
     data = request.json
@@ -104,7 +106,7 @@ def create_folder():
     conn.close()
     return jsonify({"id": folder_id, "name": data["name"]})
 
-
+# Rename folder
 @app.route("/api/folders/<int:folder_id>", methods=["PUT"])
 def update_folder(folder_id):
     data = request.json
@@ -117,7 +119,7 @@ def update_folder(folder_id):
     conn.close()
     return jsonify({"success": True})
 
-
+# Delete folder and its associations
 @app.route("/api/folders/<int:folder_id>", methods=["DELETE"])
 def delete_folder(folder_id):
     conn = get_db()
@@ -127,7 +129,7 @@ def delete_folder(folder_id):
     conn.close()
     return jsonify({"success": True})
 
-
+# Track list for a specific folder
 @app.route("/api/folders/<int:folder_id>/tracks", methods=["GET"])
 def get_folder_tracks(folder_id):
     conn = get_db()
@@ -141,7 +143,7 @@ def get_folder_tracks(folder_id):
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-
+# Transitions for a specific folder
 @app.route("/api/folders/<int:folder_id>/transitions", methods=["GET"])
 def get_folder_transitions(folder_id):
     """Get all transitions where both tracks are in the folder."""
@@ -171,7 +173,8 @@ def get_folder_transitions(folder_id):
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-
+# Show graph data (nodes and edges)
+# Used for visualizing the track-transition graph
 @app.route("/api/graph", methods=["GET"])
 def get_graph_data():
     """Get all tracks and transitions for graph visualization."""
@@ -204,7 +207,7 @@ def get_graph_data():
         "edges": [dict(row) for row in transitions]
     })
 
-
+# Folder graph data (nodes and edges)
 @app.route("/api/folders/<int:folder_id>/graph", methods=["GET"])
 def get_folder_graph_data(folder_id):
     """Get tracks and transitions for a specific folder for graph visualization."""
@@ -240,7 +243,7 @@ def get_folder_graph_data(folder_id):
         "edges": [dict(row) for row in transitions]
     })
 
-
+# Playlist graph data (nodes and edges)
 @app.route("/api/playlists/<int:playlist_id>/graph", methods=["GET"])
 def get_playlist_graph_data(playlist_id):
     """Get tracks and transitions for a specific playlist for graph visualization."""
@@ -276,7 +279,7 @@ def get_playlist_graph_data(playlist_id):
         "edges": [dict(row) for row in transitions]
     })
 
-
+# Add a track to a folder
 @app.route("/api/folders/<int:folder_id>/tracks", methods=["POST"])
 def add_track_to_folder(folder_id):
     data = request.json
@@ -301,7 +304,7 @@ def add_track_to_folder(folder_id):
         conn.close()
         return jsonify({"error": "Track already in folder"}), 400
 
-
+# Remove a track from a folder
 @app.route("/api/folders/<int:folder_id>/tracks/<int:track_id>", methods=["DELETE"])
 def remove_track_from_folder(folder_id, track_id):
     conn = get_db()
@@ -318,6 +321,7 @@ def remove_track_from_folder(folder_id, track_id):
 # PLAYLISTS (for DJ sets - separate from folders)
 # ============================================================================
 
+# Get all playlists with track counts
 @app.route("/api/playlists", methods=["GET"])
 def get_playlists():
     conn = get_db()
@@ -330,7 +334,7 @@ def get_playlists():
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-
+# Create a new playlist
 @app.route("/api/playlists", methods=["POST"])
 def create_playlist():
     data = request.json
@@ -344,7 +348,7 @@ def create_playlist():
     conn.close()
     return jsonify({"id": playlist_id, "name": data["name"]})
 
-
+# Rename playlist
 @app.route("/api/playlists/<int:playlist_id>", methods=["PUT"])
 def update_playlist(playlist_id):
     data = request.json
@@ -357,7 +361,7 @@ def update_playlist(playlist_id):
     conn.close()
     return jsonify({"success": True})
 
-
+# Delete playlist and its associations
 @app.route("/api/playlists/<int:playlist_id>", methods=["DELETE"])
 def delete_playlist(playlist_id):
     conn = get_db()
@@ -367,7 +371,7 @@ def delete_playlist(playlist_id):
     conn.close()
     return jsonify({"success": True})
 
-
+# Playlist track list
 @app.route("/api/playlists/<int:playlist_id>/tracks", methods=["GET"])
 def get_playlist_tracks(playlist_id):
     conn = get_db()
@@ -381,7 +385,7 @@ def get_playlist_tracks(playlist_id):
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-
+# Add a track to a playlist
 @app.route("/api/playlists/<int:playlist_id>/tracks", methods=["POST"])
 def add_track_to_playlist(playlist_id):
     data = request.json
@@ -403,7 +407,7 @@ def add_track_to_playlist(playlist_id):
     conn.close()
     return jsonify({"success": True})
 
-
+# Remove a track from a playlist
 @app.route("/api/playlists/<int:playlist_id>/tracks/<int:position>", methods=["DELETE"])
 def remove_track_from_playlist(playlist_id, position):
     """Remove track at specific position from playlist."""
@@ -416,7 +420,7 @@ def remove_track_from_playlist(playlist_id, position):
     conn.close()
     return jsonify({"success": True})
 
-
+# Reorder tracks in a playlist
 @app.route("/api/playlists/<int:playlist_id>/tracks/reorder", methods=["POST"])
 def reorder_playlist_tracks(playlist_id):
     """Swap two tracks in playlist by their positions."""
@@ -456,6 +460,7 @@ def reorder_playlist_tracks(playlist_id):
 # FILE UPLOAD / REKORDBOX IMPORT
 # ============================================================================
 
+# Parse Rekordbox .txt content
 def parse_rekordbox_txt_content(content: str) -> list[dict]:
     """Parse Rekordbox .txt content (tab-delimited format)."""
     lines = content.split("\n")
@@ -478,7 +483,9 @@ def parse_rekordbox_txt_content(content: str) -> list[dict]:
             value = fields[i].strip() if i < len(fields) else ""
             row[header] = value
         
-        # Map common Rekordbox column names to our schema (Swedish and English)
+        # Map common Rekordbox column names to our schema
+        # Swedish and English
+        # TODO handle more fields as needed
         track = {
             "title": row.get("Spårtitel") or row.get("Track Title") or row.get("Title") or row.get("Name") or "",
             "artist": row.get("Artist") or "",
@@ -514,7 +521,7 @@ def parse_rekordbox_txt_content(content: str) -> list[dict]:
     
     return tracks
 
-
+# Import Rekordbox .txt file into a folder
 @app.route("/api/folders/<int:folder_id>/import", methods=["POST"])
 def import_rekordbox_to_folder(folder_id):
     """Import a Rekordbox .txt file into a folder."""
@@ -597,6 +604,7 @@ def import_rekordbox_to_folder(folder_id):
 # TRACKS
 # ============================================================================
 
+# Get all tracks
 @app.route("/api/tracks", methods=["GET"])
 def get_tracks():
     conn = get_db()
@@ -609,7 +617,7 @@ def get_tracks():
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-
+# Create a new track
 @app.route("/api/tracks", methods=["POST"])
 def create_track():
     """Manually create a new track."""
@@ -646,7 +654,7 @@ def create_track():
     
     return jsonify(dict(row)), 201
 
-
+# Get a specific track
 @app.route("/api/tracks/<int:track_id>", methods=["GET"])
 def get_track(track_id):
     conn = get_db()
@@ -658,7 +666,7 @@ def get_track(track_id):
         return jsonify(dict(row))
     return jsonify({"error": "Track not found"}), 404
 
-
+# Update a specific track
 @app.route("/api/tracks/<int:track_id>", methods=["PUT"])
 def update_track(track_id):
     data = request.json
@@ -701,7 +709,7 @@ def update_track(track_id):
         return jsonify(dict(row))
     return jsonify({"error": "Track not found"}), 404
 
-
+# Delete a specific track
 @app.route("/api/tracks/<int:track_id>", methods=["DELETE"])
 def delete_track(track_id):
     conn = get_db()
@@ -721,7 +729,7 @@ def delete_track(track_id):
     
     return jsonify({"success": True})
 
-
+# Search tracks by title or artist
 @app.route("/api/tracks/search", methods=["GET"])
 def search_tracks():
     query = request.args.get("q", "")
@@ -741,6 +749,7 @@ def search_tracks():
 # TRANSITIONS
 # ============================================================================
 
+# Get all transitions
 @app.route("/api/transitions", methods=["GET"])
 def get_transitions():
     conn = get_db()
@@ -776,7 +785,7 @@ def get_transitions():
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-
+# Create a new transition
 @app.route("/api/transitions", methods=["POST"])
 def create_transition():
     data = request.json
@@ -801,7 +810,7 @@ def create_transition():
         conn.close()
         return jsonify({"error": "Transition already exists"}), 400
 
-
+# Delete a transition
 @app.route("/api/transitions/<int:trans_id>", methods=["DELETE"])
 def delete_transition(trans_id):
     conn = get_db()
@@ -810,7 +819,7 @@ def delete_transition(trans_id):
     conn.close()
     return jsonify({"success": True})
 
-
+# Update a transition without having to delete and recreate
 @app.route("/api/transitions/<int:trans_id>", methods=["PUT"])
 def update_transition(trans_id):
     data = request.json
@@ -824,7 +833,7 @@ def update_transition(trans_id):
     conn.close()
     return jsonify({"success": True})
 
-
+# Get all transitions from a specific track
 @app.route("/api/tracks/<int:track_id>/transitions", methods=["GET"])
 def get_track_transitions(track_id):
     """Get all transitions from a specific track."""
@@ -853,6 +862,7 @@ def get_track_transitions(track_id):
 # UTILS
 # ============================================================================
 
+# Reindex tracks to have sequential IDs
 def reindex_tracks():
     """Reindex all tracks to start from 1 with no gaps."""
     conn = get_db()

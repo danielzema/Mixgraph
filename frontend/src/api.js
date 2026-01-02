@@ -1,45 +1,70 @@
 const API_BASE = '/api'
 
+// Helper to get auth headers
+function getAuthHeaders(includeContentType = false) {
+  const token = localStorage.getItem('token')
+  const headers = {}
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json'
+  }
+  return headers
+}
+
+// Helper for authenticated fetch
+async function authFetch(url, options = {}) {
+  const headers = {
+    ...getAuthHeaders(options.body && !(options.body instanceof FormData)),
+    ...options.headers
+  }
+  
+  const res = await fetch(url, { ...options, headers })
+  
+  // Handle unauthorized responses
+  if (res.status === 401) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    window.location.href = '/login'
+    throw new Error('Unauthorized')
+  }
+  
+  return res.json()
+}
+
 // ============================================================================
 // TRACKS
 // ============================================================================
 
 export async function getTracks() {
-  const res = await fetch(`${API_BASE}/tracks`)
-  return res.json()
+  return authFetch(`${API_BASE}/tracks`)
 }
 
 export async function getTrack(id) {
-  const res = await fetch(`${API_BASE}/tracks/${id}`)
-  return res.json()
+  return authFetch(`${API_BASE}/tracks/${id}`)
 }
 
 export async function deleteTrack(id) {
-  const res = await fetch(`${API_BASE}/tracks/${id}`, { method: 'DELETE' })
-  return res.json()
+  return authFetch(`${API_BASE}/tracks/${id}`, { method: 'DELETE' })
 }
 
 export async function createTrack(trackData) {
-  const res = await fetch(`${API_BASE}/tracks`, {
+  return authFetch(`${API_BASE}/tracks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(trackData)
   })
-  return res.json()
 }
 
 export async function updateTrack(id, trackData) {
-  const res = await fetch(`${API_BASE}/tracks/${id}`, {
+  return authFetch(`${API_BASE}/tracks/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(trackData)
   })
-  return res.json()
 }
 
 export async function searchTracks(query) {
-  const res = await fetch(`${API_BASE}/tracks/search?q=${encodeURIComponent(query)}`)
-  return res.json()
+  return authFetch(`${API_BASE}/tracks/search?q=${encodeURIComponent(query)}`)
 }
 
 // ============================================================================
@@ -47,36 +72,29 @@ export async function searchTracks(query) {
 // ============================================================================
 
 export async function getTransitions() {
-  const res = await fetch(`${API_BASE}/transitions`)
-  return res.json()
+  return authFetch(`${API_BASE}/transitions`)
 }
 
 export async function createTransition(data) {
-  const res = await fetch(`${API_BASE}/transitions`, {
+  return authFetch(`${API_BASE}/transitions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  return res.json()
 }
 
 export async function deleteTransition(id) {
-  const res = await fetch(`${API_BASE}/transitions/${id}`, { method: 'DELETE' })
-  return res.json()
+  return authFetch(`${API_BASE}/transitions/${id}`, { method: 'DELETE' })
 }
 
 export async function updateTransition(id, data) {
-  const res = await fetch(`${API_BASE}/transitions/${id}`, {
+  return authFetch(`${API_BASE}/transitions/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   })
-  return res.json()
 }
 
 export async function getTrackTransitions(trackId) {
-  const res = await fetch(`${API_BASE}/tracks/${trackId}/transitions`)
-  return res.json()
+  return authFetch(`${API_BASE}/tracks/${trackId}/transitions`)
 }
 
 // ============================================================================
@@ -84,68 +102,70 @@ export async function getTrackTransitions(trackId) {
 // ============================================================================
 
 export async function getFolders() {
-  const res = await fetch(`${API_BASE}/folders`)
-  return res.json()
+  return authFetch(`${API_BASE}/folders`)
 }
 
 export async function createFolder(name, parentId = null) {
-  const res = await fetch(`${API_BASE}/folders`, {
+  return authFetch(`${API_BASE}/folders`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, parent_id: parentId })
   })
-  return res.json()
 }
 
 export async function updateFolder(id, name) {
-  const res = await fetch(`${API_BASE}/folders/${id}`, {
+  return authFetch(`${API_BASE}/folders/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
   })
-  return res.json()
 }
 
 export async function deleteFolder(id) {
-  const res = await fetch(`${API_BASE}/folders/${id}`, { method: 'DELETE' })
-  return res.json()
+  return authFetch(`${API_BASE}/folders/${id}`, { method: 'DELETE' })
 }
 
 export async function getFolderTracks(folderId) {
-  const res = await fetch(`${API_BASE}/folders/${folderId}/tracks`)
-  return res.json()
+  return authFetch(`${API_BASE}/folders/${folderId}/tracks`)
 }
 
 export async function addTrackToFolder(folderId, trackId) {
-  const res = await fetch(`${API_BASE}/folders/${folderId}/tracks`, {
+  return authFetch(`${API_BASE}/folders/${folderId}/tracks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ track_id: trackId })
   })
-  return res.json()
 }
 
 export async function removeTrackFromFolder(folderId, trackId) {
-  const res = await fetch(`${API_BASE}/folders/${folderId}/tracks/${trackId}`, {
+  return authFetch(`${API_BASE}/folders/${folderId}/tracks/${trackId}`, {
     method: 'DELETE'
   })
-  return res.json()
 }
 
 export async function importRekordboxToFolder(folderId, file) {
   const formData = new FormData()
   formData.append('file', file)
   
+  // For FormData, don't set Content-Type header (browser sets it with boundary)
+  const token = localStorage.getItem('token')
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+  
   const res = await fetch(`${API_BASE}/folders/${folderId}/import`, {
     method: 'POST',
+    headers,
     body: formData
   })
+  
+  if (res.status === 401) {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    window.location.href = '/login'
+    throw new Error('Unauthorized')
+  }
+  
   return res.json()
 }
 
 export async function getFolderTransitions(folderId) {
-  const res = await fetch(`${API_BASE}/folders/${folderId}/transitions`)
-  return res.json()
+  return authFetch(`${API_BASE}/folders/${folderId}/transitions`)
 }
 
 // ============================================================================
@@ -153,61 +173,50 @@ export async function getFolderTransitions(folderId) {
 // ============================================================================
 
 export async function getPlaylists() {
-  const res = await fetch(`${API_BASE}/playlists`)
-  return res.json()
+  return authFetch(`${API_BASE}/playlists`)
 }
 
 export async function createPlaylist(name) {
-  const res = await fetch(`${API_BASE}/playlists`, {
+  return authFetch(`${API_BASE}/playlists`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
   })
-  return res.json()
 }
 
 export async function updatePlaylist(id, name) {
-  const res = await fetch(`${API_BASE}/playlists/${id}`, {
+  return authFetch(`${API_BASE}/playlists/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name })
   })
-  return res.json()
 }
 
 export async function deletePlaylist(id) {
-  const res = await fetch(`${API_BASE}/playlists/${id}`, { method: 'DELETE' })
-  return res.json()
+  return authFetch(`${API_BASE}/playlists/${id}`, { method: 'DELETE' })
 }
 
 export async function getPlaylistTracks(playlistId) {
-  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks`)
-  return res.json()
+  return authFetch(`${API_BASE}/playlists/${playlistId}/tracks`)
 }
 
 export async function addTrackToPlaylist(playlistId, trackId) {
-  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks`, {
+  return authFetch(`${API_BASE}/playlists/${playlistId}/tracks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ track_id: trackId })
   })
-  return res.json()
 }
 
 export async function removeTrackFromPlaylist(playlistId, position) {
-  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks/${position}`, {
+  return authFetch(`${API_BASE}/playlists/${playlistId}/tracks/${position}`, {
     method: 'DELETE'
   })
   return res.json()
 }
 
 export async function reorderPlaylistTracks(playlistId, position1, position2) {
-  const res = await fetch(`${API_BASE}/playlists/${playlistId}/tracks/reorder`, {
+  return authFetch(`${API_BASE}/playlists/${playlistId}/tracks/reorder`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ position1, position2 })
   })
-  return res.json()
 }
 
 // ============================================================================
@@ -215,16 +224,13 @@ export async function reorderPlaylistTracks(playlistId, position1, position2) {
 // ============================================================================
 
 export async function getGraphData() {
-  const res = await fetch(`${API_BASE}/graph`)
-  return res.json()
+  return authFetch(`${API_BASE}/graph`)
 }
 
 export async function getFolderGraphData(folderId) {
-  const res = await fetch(`${API_BASE}/folders/${folderId}/graph`)
-  return res.json()
+  return authFetch(`${API_BASE}/folders/${folderId}/graph`)
 }
 
 export async function getPlaylistGraphData(playlistId) {
-  const res = await fetch(`${API_BASE}/playlists/${playlistId}/graph`)
-  return res.json()
+  return authFetch(`${API_BASE}/playlists/${playlistId}/graph`)
 }

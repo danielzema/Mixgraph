@@ -1,10 +1,50 @@
+# Python
 __pycache__/
-comments.txt
-mixgraph.db
-mixgraph/
-.env
-frontend/node_modules/
-frontend/build/
-.ds_store
-.vscode/
+*.pyc
+*.pyo
+*.pyd
+.Python
 .venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+
+# Database
+mixgraph.db
+*.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.ds_store
+Thumbs.db
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+*.log
+npm-debug.log*
+
+# Project specific
+comments.txt
+todo.txt
+mixgraph/
+
+# Secrets / Keys
+*.pem
+*.key
+secrets/

@@ -1,14 +1,21 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask_cors import CORS
 import sqlite3
 from pathlib import Path
 import tempfile
 import os
+import hashlib
+import secrets
+from functools import wraps
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
 
 DB_PATH = Path("mixgraph.db")
+
+# Secret key for token generation (in production, use environment variable)
+SECRET_KEY = os.environ.get('SECRET_KEY', 'mixgraph-dev-secret-key-change-in-production')
 
 # Set up database connection
 def get_db():
@@ -16,10 +23,82 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+def hash_password(password, salt=None):
+    """Hash a password with a salt."""
+    if salt is None:
+        salt = secrets.token_hex(16)
+    hashed = hashlib.pbkdf2_hmac('sha256', password.encode(), salt.encode(), 100000)
+    return salt + ':' + hashed.hex()
+
+def verify_password(password, stored_hash):
+    """Verify a password against a stored hash."""
+    try:
+        salt, hash_hex = stored_hash.split(':')
+        return hash_password(password, salt) == stored_hash
+    except:
+        return False
+
+def generate_token(user_id):
+    """Generate a simple auth token."""
+    token_data = f"{user_id}:{secrets.token_hex(32)}:{datetime.now().timestamp()}"
+    return token_data
+
+def get_current_user():
+    """Get the current user from the Authorization header."""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return None
+    
+    token = auth_header[7:]  # Remove 'Bearer ' prefix
+    
+    conn = get_db()
+    user = conn.execute(
+        "SELECT id, username, email FROM users WHERE token = ?",
+        (token,)
+    ).fetchone()
+    conn.close()
+    
+    return dict(user) if user else None
+
+def login_required(f):
+    """Decorator to require authentication."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        user = get_current_user()
+        if not user:
+            return jsonify({"error": "Authentication required"}), 401
+        g.user = user
+        return f(*args, **kwargs)
+    return decorated
+
 # Initialize database tables
 def init_db():
     """Initialize database tables including folders and playlists."""
     conn = get_db()
+    
+    # Users table for authentication
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            token TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # Add user_id to tracks if not exists
+    try:
+        conn.execute("ALTER TABLE tracks ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    except sqlite3.OperationalError:
+        pass
+    
+    # Add user_id to transitions if not exists
+    try:
+        conn.execute("ALTER TABLE transitions ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    except sqlite3.OperationalError:
+        pass
     
     # Folders for organizing track library
     # Folders can contain multiple tracks, and tracks can be in multiple folders.
@@ -28,10 +107,18 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             parent_id INTEGER,
+            user_id INTEGER,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE
+            FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     """)
+    
+    # Add user_id to folders if not exists
+    try:
+        conn.execute("ALTER TABLE folders ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    except sqlite3.OperationalError:
+        pass
     
     # Track-folder relationship (many-to-many) - for library organization
     conn.execute("""
@@ -51,9 +138,17 @@ def init_db():
         CREATE TABLE IF NOT EXISTS playlists (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            user_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
     """)
+    
+    # Add user_id to playlists if not exists
+    try:
+        conn.execute("ALTER TABLE playlists ADD COLUMN user_id INTEGER REFERENCES users(id)")
+    except sqlite3.OperationalError:
+        pass
     
     # Playlist-track relationship (many-to-many) - for DJ set building
     conn.execute("""
@@ -76,30 +171,220 @@ init_db()
 
 
 # ============================================================================
+# AUTHENTICATION
+# ============================================================================
+
+@app.route("/api/auth/register", methods=["POST"])
+def register():
+    """Register a new user."""
+    data = request.json
+    
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip().lower()
+    password = data.get("password", "")
+    
+    # Validate input
+    if not username or len(username) < 3:
+        return jsonify({"error": "Username must be at least 3 characters"}), 400
+    if not email or "@" not in email:
+        return jsonify({"error": "Valid email is required"}), 400
+    if not password or len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+    
+    conn = get_db()
+    
+    # Check if username or email already exists
+    existing = conn.execute(
+        "SELECT id FROM users WHERE username = ? OR email = ?",
+        (username, email)
+    ).fetchone()
+    
+    if existing:
+        conn.close()
+        return jsonify({"error": "Username or email already exists"}), 400
+    
+    # Create user
+    password_hash = hash_password(password)
+    token = generate_token(0)  # Will update with real ID
+    
+    cursor = conn.execute(
+        "INSERT INTO users (username, email, password_hash, token) VALUES (?, ?, ?, ?)",
+        (username, email, password_hash, token)
+    )
+    user_id = cursor.lastrowid
+    
+    # Update token with real user ID
+    token = generate_token(user_id)
+    conn.execute("UPDATE users SET token = ? WHERE id = ?", (token, user_id))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "user": {"id": user_id, "username": username, "email": email},
+        "token": token
+    }), 201
+
+@app.route("/api/auth/login", methods=["POST"])
+def login():
+    """Login an existing user."""
+    data = request.json
+    
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+    
+    if not username or not password:
+        return jsonify({"error": "Username and password required"}), 400
+    
+    conn = get_db()
+    
+    # Find user by username or email
+    user = conn.execute(
+        "SELECT id, username, email, password_hash FROM users WHERE username = ? OR email = ?",
+        (username, username)
+    ).fetchone()
+    
+    if not user or not verify_password(password, user["password_hash"]):
+        conn.close()
+        return jsonify({"error": "Invalid credentials"}), 401
+    
+    # Generate new token
+    token = generate_token(user["id"])
+    conn.execute("UPDATE users SET token = ? WHERE id = ?", (token, user["id"]))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "user": {"id": user["id"], "username": user["username"], "email": user["email"]},
+        "token": token
+    })
+
+@app.route("/api/auth/logout", methods=["POST"])
+@login_required
+def logout():
+    """Logout current user."""
+    conn = get_db()
+    conn.execute("UPDATE users SET token = NULL WHERE id = ?", (g.user["id"],))
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route("/api/auth/me", methods=["GET"])
+@login_required
+def get_me():
+    """Get current user info."""
+    return jsonify({"user": g.user})
+
+@app.route("/api/auth/profile", methods=["PUT"])
+@login_required
+def update_profile():
+    """Update user profile (username, email)."""
+    data = request.json
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip().lower()
+    
+    if not username or not email:
+        return jsonify({"error": "Username and email are required"}), 400
+    
+    conn = get_db()
+    
+    # Check if username is taken by another user
+    existing = conn.execute(
+        "SELECT id FROM users WHERE username = ? AND id != ?",
+        (username, g.user["id"])
+    ).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({"error": "Username is already taken"}), 400
+    
+    # Check if email is taken by another user
+    existing = conn.execute(
+        "SELECT id FROM users WHERE email = ? AND id != ?",
+        (email, g.user["id"])
+    ).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({"error": "Email is already in use"}), 400
+    
+    conn.execute(
+        "UPDATE users SET username = ?, email = ? WHERE id = ?",
+        (username, email, g.user["id"])
+    )
+    conn.commit()
+    
+    user = conn.execute(
+        "SELECT id, username, email FROM users WHERE id = ?",
+        (g.user["id"],)
+    ).fetchone()
+    conn.close()
+    
+    return jsonify({"user": dict(user)})
+
+@app.route("/api/auth/password", methods=["PUT"])
+@login_required
+def change_password():
+    """Change user password."""
+    data = request.json
+    current_password = data.get("current_password", "")
+    new_password = data.get("new_password", "")
+    
+    if not current_password or not new_password:
+        return jsonify({"error": "Current and new password are required"}), 400
+    
+    if len(new_password) < 4:
+        return jsonify({"error": "New password must be at least 4 characters"}), 400
+    
+    conn = get_db()
+    
+    # Verify current password
+    user = conn.execute(
+        "SELECT password_hash FROM users WHERE id = ?",
+        (g.user["id"],)
+    ).fetchone()
+    
+    if not verify_password(current_password, user["password_hash"]):
+        conn.close()
+        return jsonify({"error": "Current password is incorrect"}), 401
+    
+    # Update password
+    new_hash = hash_password(new_password)
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (new_hash, g.user["id"])
+    )
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
+
+# ============================================================================
 # FOLDERS/PLAYLISTS
 # ============================================================================
 
 # Return all folders with track counts
 @app.route("/api/folders", methods=["GET"])
+@login_required
 def get_folders():
     conn = get_db()
     rows = conn.execute("""
         SELECT f.*, 
             (SELECT COUNT(*) FROM folder_tracks WHERE folder_id = f.id) as track_count
         FROM folders f
+        WHERE f.user_id = ? OR f.user_id IS NULL
         ORDER BY f.name
-    """).fetchall()
+    """, (g.user["id"],)).fetchall()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
 # Create a new folder
 @app.route("/api/folders", methods=["POST"])
+@login_required
 def create_folder():
     data = request.json
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO folders (name, parent_id) VALUES (?, ?)",
-        (data["name"], data.get("parent_id"))
+        "INSERT INTO folders (name, parent_id, user_id) VALUES (?, ?, ?)",
+        (data["name"], data.get("parent_id"), g.user["id"])
     )
     folder_id = cursor.lastrowid
     conn.commit()
@@ -108,12 +393,13 @@ def create_folder():
 
 # Rename folder
 @app.route("/api/folders/<int:folder_id>", methods=["PUT"])
+@login_required
 def update_folder(folder_id):
     data = request.json
     conn = get_db()
     conn.execute(
-        "UPDATE folders SET name = ? WHERE id = ?",
-        (data["name"], folder_id)
+        "UPDATE folders SET name = ? WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
+        (data["name"], folder_id, g.user["id"])
     )
     conn.commit()
     conn.close()
@@ -121,16 +407,18 @@ def update_folder(folder_id):
 
 # Delete folder and its associations
 @app.route("/api/folders/<int:folder_id>", methods=["DELETE"])
+@login_required
 def delete_folder(folder_id):
     conn = get_db()
-    conn.execute("DELETE FROM folder_tracks WHERE folder_id = ?", (folder_id,))
-    conn.execute("DELETE FROM folders WHERE id = ?", (folder_id,))
+    conn.execute("DELETE FROM folder_tracks WHERE folder_id = ? AND folder_id IN (SELECT id FROM folders WHERE user_id = ? OR user_id IS NULL)", (folder_id, g.user["id"]))
+    conn.execute("DELETE FROM folders WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (folder_id, g.user["id"]))
     conn.commit()
     conn.close()
     return jsonify({"success": True})
 
 # Track list for a specific folder
 @app.route("/api/folders/<int:folder_id>/tracks", methods=["GET"])
+@login_required
 def get_folder_tracks(folder_id):
     conn = get_db()
     rows = conn.execute("""
@@ -145,6 +433,7 @@ def get_folder_tracks(folder_id):
 
 # Transitions for a specific folder
 @app.route("/api/folders/<int:folder_id>/transitions", methods=["GET"])
+@login_required
 def get_folder_transitions(folder_id):
     """Get all transitions where both tracks are in the folder."""
     conn = get_db()
@@ -176,19 +465,21 @@ def get_folder_transitions(folder_id):
 # Show graph data (nodes and edges)
 # Used for visualizing the track-transition graph
 @app.route("/api/graph", methods=["GET"])
+@login_required
 def get_graph_data():
     """Get all tracks and transitions for graph visualization."""
     conn = get_db()
     
-    # Get all tracks as nodes
+    # Get all tracks as nodes (for this user)
     tracks = conn.execute("""
         SELECT id, title, artist, bpm, key
         FROM tracks
+        WHERE user_id = ? OR user_id IS NULL
         GROUP BY title, artist
         ORDER BY id
-    """).fetchall()
+    """, (g.user["id"],)).fetchall()
     
-    # Get all transitions as edges
+    # Get all transitions as edges (for this user)
     transitions = conn.execute("""
         SELECT 
             t.id,
@@ -197,8 +488,9 @@ def get_graph_data():
             t.rating,
             t.transition_type
         FROM transitions t
+        WHERE t.user_id = ? OR t.user_id IS NULL
         ORDER BY t.id
-    """).fetchall()
+    """, (g.user["id"],)).fetchall()
     
     conn.close()
     
@@ -209,6 +501,7 @@ def get_graph_data():
 
 # Folder graph data (nodes and edges)
 @app.route("/api/folders/<int:folder_id>/graph", methods=["GET"])
+@login_required
 def get_folder_graph_data(folder_id):
     """Get tracks and transitions for a specific folder for graph visualization."""
     conn = get_db()
@@ -245,6 +538,7 @@ def get_folder_graph_data(folder_id):
 
 # Playlist graph data (nodes and edges)
 @app.route("/api/playlists/<int:playlist_id>/graph", methods=["GET"])
+@login_required
 def get_playlist_graph_data(playlist_id):
     """Get tracks and transitions for a specific playlist for graph visualization."""
     conn = get_db()
@@ -281,6 +575,7 @@ def get_playlist_graph_data(playlist_id):
 
 # Add a track to a folder
 @app.route("/api/folders/<int:folder_id>/tracks", methods=["POST"])
+@login_required
 def add_track_to_folder(folder_id):
     data = request.json
     track_id = data["track_id"]
@@ -306,6 +601,7 @@ def add_track_to_folder(folder_id):
 
 # Remove a track from a folder
 @app.route("/api/folders/<int:folder_id>/tracks/<int:track_id>", methods=["DELETE"])
+@login_required
 def remove_track_from_folder(folder_id, track_id):
     conn = get_db()
     conn.execute(
@@ -323,25 +619,28 @@ def remove_track_from_folder(folder_id, track_id):
 
 # Get all playlists with track counts
 @app.route("/api/playlists", methods=["GET"])
+@login_required
 def get_playlists():
     conn = get_db()
     rows = conn.execute("""
         SELECT p.*, 
             (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id) as track_count
         FROM playlists p
+        WHERE p.user_id = ? OR p.user_id IS NULL
         ORDER BY p.name
-    """).fetchall()
+    """, (g.user["id"],)).fetchall()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
 # Create a new playlist
 @app.route("/api/playlists", methods=["POST"])
+@login_required
 def create_playlist():
     data = request.json
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO playlists (name) VALUES (?)",
-        (data["name"],)
+        "INSERT INTO playlists (name, user_id) VALUES (?, ?)",
+        (data["name"], g.user["id"])
     )
     playlist_id = cursor.lastrowid
     conn.commit()
@@ -350,12 +649,13 @@ def create_playlist():
 
 # Rename playlist
 @app.route("/api/playlists/<int:playlist_id>", methods=["PUT"])
+@login_required
 def update_playlist(playlist_id):
     data = request.json
     conn = get_db()
     conn.execute(
-        "UPDATE playlists SET name = ? WHERE id = ?",
-        (data["name"], playlist_id)
+        "UPDATE playlists SET name = ? WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
+        (data["name"], playlist_id, g.user["id"])
     )
     conn.commit()
     conn.close()
@@ -363,16 +663,18 @@ def update_playlist(playlist_id):
 
 # Delete playlist and its associations
 @app.route("/api/playlists/<int:playlist_id>", methods=["DELETE"])
+@login_required
 def delete_playlist(playlist_id):
     conn = get_db()
-    conn.execute("DELETE FROM playlist_tracks WHERE playlist_id = ?", (playlist_id,))
-    conn.execute("DELETE FROM playlists WHERE id = ?", (playlist_id,))
+    conn.execute("DELETE FROM playlist_tracks WHERE playlist_id = ? AND playlist_id IN (SELECT id FROM playlists WHERE user_id = ? OR user_id IS NULL)", (playlist_id, g.user["id"]))
+    conn.execute("DELETE FROM playlists WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (playlist_id, g.user["id"]))
     conn.commit()
     conn.close()
     return jsonify({"success": True})
 
 # Playlist track list
 @app.route("/api/playlists/<int:playlist_id>/tracks", methods=["GET"])
+@login_required
 def get_playlist_tracks(playlist_id):
     conn = get_db()
     rows = conn.execute("""
@@ -387,6 +689,7 @@ def get_playlist_tracks(playlist_id):
 
 # Add a track to a playlist
 @app.route("/api/playlists/<int:playlist_id>/tracks", methods=["POST"])
+@login_required
 def add_track_to_playlist(playlist_id):
     data = request.json
     track_id = data["track_id"]
@@ -409,6 +712,7 @@ def add_track_to_playlist(playlist_id):
 
 # Remove a track from a playlist
 @app.route("/api/playlists/<int:playlist_id>/tracks/<int:position>", methods=["DELETE"])
+@login_required
 def remove_track_from_playlist(playlist_id, position):
     """Remove track at specific position from playlist."""
     conn = get_db()
@@ -422,6 +726,7 @@ def remove_track_from_playlist(playlist_id, position):
 
 # Reorder tracks in a playlist
 @app.route("/api/playlists/<int:playlist_id>/tracks/reorder", methods=["POST"])
+@login_required
 def reorder_playlist_tracks(playlist_id):
     """Swap two tracks in playlist by their positions."""
     data = request.json
@@ -523,6 +828,7 @@ def parse_rekordbox_txt_content(content: str) -> list[dict]:
 
 # Import Rekordbox .txt file into a folder
 @app.route("/api/folders/<int:folder_id>/import", methods=["POST"])
+@login_required
 def import_rekordbox_to_folder(folder_id):
     """Import a Rekordbox .txt file into a folder."""
     if "file" not in request.files:
@@ -558,21 +864,21 @@ def import_rekordbox_to_folder(folder_id):
     imported_count = 0
     
     for track in tracks:
-        # Check if track already exists
+        # Check if track already exists for this user
         existing = conn.execute(
-            "SELECT id FROM tracks WHERE title = ? AND artist = ?",
-            (track["title"], track["artist"])
+            "SELECT id FROM tracks WHERE title = ? AND artist = ? AND (user_id = ? OR user_id IS NULL)",
+            (track["title"], track["artist"], g.user["id"])
         ).fetchone()
         
         if existing:
             track_id = existing["id"]
         else:
-            # Insert new track
+            # Insert new track with user_id
             cursor = conn.execute("""
-                INSERT INTO tracks (title, artist, bpm, key, duration_seconds, genre, location)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO tracks (title, artist, bpm, key, duration_seconds, genre, location, user_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (track["title"], track["artist"], track["bpm"], track["key"], 
-                  track["duration_seconds"], track["genre"], track["location"]))
+                  track["duration_seconds"], track["genre"], track["location"], g.user["id"]))
             track_id = cursor.lastrowid
         
         # Add to folder
@@ -606,19 +912,22 @@ def import_rekordbox_to_folder(folder_id):
 
 # Get all tracks
 @app.route("/api/tracks", methods=["GET"])
+@login_required
 def get_tracks():
     conn = get_db()
     rows = conn.execute("""
         SELECT id, title, artist, bpm, key, duration_seconds, genre, location
         FROM tracks
+        WHERE user_id = ? OR user_id IS NULL
         GROUP BY title, artist
         ORDER BY id
-    """).fetchall()
+    """, (g.user["id"],)).fetchall()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
 # Create a new track
 @app.route("/api/tracks", methods=["POST"])
+@login_required
 def create_track():
     """Manually create a new track."""
     data = request.json
@@ -630,8 +939,8 @@ def create_track():
     conn = get_db()
     cursor = conn.execute(
         """
-        INSERT INTO tracks (title, artist, bpm, key, duration_seconds, genre, location)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tracks (title, artist, bpm, key, duration_seconds, genre, location, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             data["title"],
@@ -640,7 +949,8 @@ def create_track():
             data.get("key"),
             data.get("duration_seconds"),
             data.get("genre"),
-            data.get("location")
+            data.get("location"),
+            g.user["id"]
         )
     )
     track_id = cursor.lastrowid
@@ -656,10 +966,11 @@ def create_track():
 
 # Get a specific track
 @app.route("/api/tracks/<int:track_id>", methods=["GET"])
+@login_required
 def get_track(track_id):
     conn = get_db()
     row = conn.execute(
-        "SELECT * FROM tracks WHERE id = ?", (track_id,)
+        "SELECT * FROM tracks WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (track_id, g.user["id"])
     ).fetchone()
     conn.close()
     if row:
@@ -668,6 +979,7 @@ def get_track(track_id):
 
 # Update a specific track
 @app.route("/api/tracks/<int:track_id>", methods=["PUT"])
+@login_required
 def update_track(track_id):
     data = request.json
     conn = get_db()
@@ -694,14 +1006,15 @@ def update_track(track_id):
     
     if updates:
         values.append(track_id)
+        values.append(g.user["id"])
         conn.execute(
-            f"UPDATE tracks SET {', '.join(updates)} WHERE id = ?",
+            f"UPDATE tracks SET {', '.join(updates)} WHERE id = ? AND (user_id = ? OR user_id IS NULL)",
             values
         )
         conn.commit()
     
     row = conn.execute(
-        "SELECT * FROM tracks WHERE id = ?", (track_id,)
+        "SELECT * FROM tracks WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (track_id, g.user["id"])
     ).fetchone()
     conn.close()
     
@@ -711,16 +1024,17 @@ def update_track(track_id):
 
 # Delete a specific track
 @app.route("/api/tracks/<int:track_id>", methods=["DELETE"])
+@login_required
 def delete_track(track_id):
     conn = get_db()
     
-    # Delete transitions first
+    # Delete transitions first (only user's)
     conn.execute(
-        "DELETE FROM transitions WHERE from_track_id = ? OR to_track_id = ?",
-        (track_id, track_id)
+        "DELETE FROM transitions WHERE (from_track_id = ? OR to_track_id = ?) AND (user_id = ? OR user_id IS NULL)",
+        (track_id, track_id, g.user["id"])
     )
-    # Delete track
-    conn.execute("DELETE FROM tracks WHERE id = ?", (track_id,))
+    # Delete track (only user's)
+    conn.execute("DELETE FROM tracks WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (track_id, g.user["id"]))
     conn.commit()
     conn.close()
     
@@ -731,16 +1045,17 @@ def delete_track(track_id):
 
 # Search tracks by title or artist
 @app.route("/api/tracks/search", methods=["GET"])
+@login_required
 def search_tracks():
     query = request.args.get("q", "")
     conn = get_db()
     rows = conn.execute("""
         SELECT DISTINCT id, title, artist, bpm, key
         FROM tracks
-        WHERE title LIKE ? OR artist LIKE ?
+        WHERE (title LIKE ? OR artist LIKE ?) AND (user_id = ? OR user_id IS NULL)
         GROUP BY title, artist
         ORDER BY id
-    """, (f"%{query}%", f"%{query}%")).fetchall()
+    """, (f"%{query}%", f"%{query}%", g.user["id"])).fetchall()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
@@ -751,6 +1066,7 @@ def search_tracks():
 
 # Get all transitions
 @app.route("/api/transitions", methods=["GET"])
+@login_required
 def get_transitions():
     conn = get_db()
     
@@ -780,13 +1096,15 @@ def get_transitions():
         FROM transitions t
         JOIN tracks t1 ON t.from_track_id = t1.id
         JOIN tracks t2 ON t.to_track_id = t2.id
+        WHERE t.user_id = ? OR t.user_id IS NULL
         ORDER BY t.id
-    """).fetchall()
+    """, (g.user["id"],)).fetchall()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
 # Create a new transition
 @app.route("/api/transitions", methods=["POST"])
+@login_required
 def create_transition():
     data = request.json
     conn = get_db()
@@ -800,9 +1118,9 @@ def create_transition():
     
     try:
         conn.execute("""
-            INSERT INTO transitions (from_track_id, to_track_id, rating, transition_type, notes)
-            VALUES (?, ?, ?, ?, ?)
-        """, (data["from_track_id"], data["to_track_id"], data["rating"], data["transition_type"], data.get("notes", "")))
+            INSERT INTO transitions (from_track_id, to_track_id, rating, transition_type, notes, user_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (data["from_track_id"], data["to_track_id"], data["rating"], data["transition_type"], data.get("notes", ""), g.user["id"]))
         conn.commit()
         conn.close()
         return jsonify({"success": True})
@@ -812,29 +1130,32 @@ def create_transition():
 
 # Delete a transition
 @app.route("/api/transitions/<int:trans_id>", methods=["DELETE"])
+@login_required
 def delete_transition(trans_id):
     conn = get_db()
-    conn.execute("DELETE FROM transitions WHERE id = ?", (trans_id,))
+    conn.execute("DELETE FROM transitions WHERE id = ? AND (user_id = ? OR user_id IS NULL)", (trans_id, g.user["id"]))
     conn.commit()
     conn.close()
     return jsonify({"success": True})
 
 # Update a transition without having to delete and recreate
 @app.route("/api/transitions/<int:trans_id>", methods=["PUT"])
+@login_required
 def update_transition(trans_id):
     data = request.json
     conn = get_db()
     conn.execute("""
         UPDATE transitions 
         SET rating = ?, transition_type = ?, notes = ?
-        WHERE id = ?
-    """, (data.get("rating"), data.get("transition_type"), data.get("notes", ""), trans_id))
+        WHERE id = ? AND (user_id = ? OR user_id IS NULL)
+    """, (data.get("rating"), data.get("transition_type"), data.get("notes", ""), trans_id, g.user["id"]))
     conn.commit()
     conn.close()
     return jsonify({"success": True})
 
 # Get all transitions from a specific track
 @app.route("/api/tracks/<int:track_id>/transitions", methods=["GET"])
+@login_required
 def get_track_transitions(track_id):
     """Get all transitions from a specific track."""
     conn = get_db()
@@ -851,9 +1172,9 @@ def get_track_transitions(track_id):
             COALESCE(t.notes, '') as notes
         FROM transitions t
         JOIN tracks t2 ON t.to_track_id = t2.id
-        WHERE t.from_track_id = ?
+        WHERE t.from_track_id = ? AND (t.user_id = ? OR t.user_id IS NULL)
         ORDER BY t.rating DESC
-    """, (track_id,)).fetchall()
+    """, (track_id, g.user["id"])).fetchall()
     conn.close()
     return jsonify([dict(row) for row in rows])
 

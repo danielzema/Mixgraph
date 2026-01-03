@@ -38,6 +38,9 @@ function Graph() {
   const graphPageRef = useRef(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const buildRequestedRef = useRef(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [searchHighlightedId, setSearchHighlightedId] = useState(null)
   
   // Dynamic canvas sizing based on node count - square for better edge distribution
   const canvasSize = useMemo(() => {
@@ -117,26 +120,10 @@ function Graph() {
     getPlaylists().then(setPlaylists)
   }, [])
 
-  // Initial load - only load graph if not cached
+  // Initial load - always load graph on mount
   useEffect(() => {
-    if (!graphCache.data) {
-      buildRequestedRef.current = true
-      loadGraph()
-    } else {
-      // Restore selected folder/playlist from cache
-      if (graphCache.selectedFolderId) {
-        getFolders().then(folders => {
-          const folder = folders.find(f => f.id === graphCache.selectedFolderId)
-          if (folder) setSelectedFolder(folder)
-        })
-      }
-      if (graphCache.selectedPlaylistId) {
-        getPlaylists().then(playlists => {
-          const playlist = playlists.find(p => p.id === graphCache.selectedPlaylistId)
-          if (playlist) setSelectedPlaylist(playlist)
-        })
-      }
-    }
+    buildRequestedRef.current = true
+    loadGraph()
   }, [])
 
   // Handle view type changes - only update highlighting, don't rebuild
@@ -648,9 +635,74 @@ function Graph() {
   const incomingCount = (nodeId) => 
     graphData.edges.filter(e => e.to_track_id === nodeId).length
 
+  // Search functionality
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([])
+      setSearchHighlightedId(null)
+      return
+    }
+    const query = searchQuery.toLowerCase()
+    const results = graphData.nodes.filter(node => 
+      node.title.toLowerCase().includes(query) || 
+      node.artist.toLowerCase().includes(query)
+    ).slice(0, 8)
+    setSearchResults(results)
+  }, [searchQuery, graphData.nodes])
+
+  function selectSearchResult(node) {
+    setSearchHighlightedId(node.id)
+    setSearchQuery('')
+    setSearchResults([])
+    setSelectedNode(node)
+    
+    // Pan to the node
+    const pos = nodePositions[node.id]
+    if (pos) {
+      const centerX = canvasSize.width / 2
+      const centerY = canvasSize.height / 2
+      setPan({ x: centerX - pos.x, y: centerY - pos.y })
+    }
+  }
+
+  function clearSearchHighlight() {
+    setSearchHighlightedId(null)
+  }
+
   return (
     <div className={`graph-page${isFullscreen ? ' fullscreen' : ''}`} ref={graphPageRef}>
       <div className="graph-controls">
+        <div className="graph-search">
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              placeholder="Search tracks..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="graph-search-input"
+            />
+            {searchHighlightedId && (
+              <button className="search-clear-btn" onClick={clearSearchHighlight} title="Clear highlight">
+                ×
+              </button>
+            )}
+          </div>
+          {searchResults.length > 0 && (
+            <div className="search-dropdown">
+              {searchResults.map(node => (
+                <div 
+                  key={node.id} 
+                  className="search-dropdown-item"
+                  onClick={() => selectSearchResult(node)}
+                >
+                  <span className="search-title">{node.title}</span>
+                  <span className="search-artist">{node.artist}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="graph-filter">
           <label>View:</label>
           <select 
@@ -830,11 +882,14 @@ function Graph() {
                 const hasOutgoing = outgoingCount(node.id) > 0
                 const hasIncoming = incomingCount(node.id) > 0
                 const isHighlighted = highlightedTrackIds.size > 0 && highlightedTrackIds.has(node.id)
+                const isSearchHighlighted = searchHighlightedId === node.id
                 
                 // Determine fill color - keep normal colors, only change highlighted ones
                 let fillColor
                 if (isSelected) {
                   fillColor = '#e94560'
+                } else if (isSearchHighlighted) {
+                  fillColor = '#f59e0b' // Amber for search highlight
                 } else if (isHighlighted) {
                   fillColor = '#22c55e' // Green for highlighted
                 } else if (hasOutgoing && hasIncoming) {
@@ -850,7 +905,7 @@ function Graph() {
                 return (
                   <g
                     key={node.id}
-                    className={`graph-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+                    className={`graph-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''} ${isSearchHighlighted ? 'search-highlighted' : ''}`}
                     transform={`translate(${pos.x}, ${pos.y})`}
                     onClick={() => {
                       setSelectedNode(isSelected ? null : node)
@@ -859,10 +914,10 @@ function Graph() {
                     style={{ cursor: 'pointer' }}
                   >
                     <circle
-                      r={isHighlighted ? 28 : 25}
+                      r={isSearchHighlighted ? 30 : isHighlighted ? 28 : 25}
                       fill={fillColor}
-                      stroke={isSelected ? '#fff' : isHighlighted ? '#4ade80' : '#e94560'}
-                      strokeWidth={isSelected ? 3 : isHighlighted ? 3 : 1.5}
+                      stroke={isSelected ? '#fff' : isSearchHighlighted ? '#fbbf24' : isHighlighted ? '#4ade80' : '#e94560'}
+                      strokeWidth={isSelected ? 3 : isSearchHighlighted ? 4 : isHighlighted ? 3 : 1.5}
                     />
                     <text
                       textAnchor="middle"

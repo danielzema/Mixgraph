@@ -1,7 +1,8 @@
 # Mixgraph
-Helps DJs create sets by representing songs as nodes in a directed graph, with edges as mixable transitions.
+The project is currently being reworked from a CLI to a web application.
 
 ## Import tracks from Rekordbox
+This is the CLI version of Mixgraph
 
 1) Export your Rekordbox playlist as .txt:
    - Right-click playlist → Export Playlist → save as .txt

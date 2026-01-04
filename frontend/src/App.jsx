@@ -8,6 +8,7 @@ import Graph from './pages/Graph'
 import Playlists from './pages/Playlists'
 import Login from './pages/Login'
 import Profile from './pages/Profile'
+import Camelot from './pages/Camelot'
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -54,36 +55,47 @@ function App() {
       <header className="header">
         <h1>Mixgraph</h1>
         <nav className="nav-buttons">
-          <button 
-            className={`nav-btn ${isActive('/') ? 'active' : ''}`}
-            onClick={() => navigate('/')}
-          >
-            DJ Mode
-          </button>
-          <button 
-            className={`nav-btn ${isActive('/tracks') ? 'active' : ''}`}
-            onClick={() => navigate('/tracks')}
-          >
-            Tracks
-          </button>
-          <button 
-            className={`nav-btn ${isActive('/playlists') ? 'active' : ''}`}
-            onClick={() => navigate('/playlists')}
-          >
-            Playlists
-          </button>
-          <button 
-            className={`nav-btn ${isActive('/transitions') ? 'active' : ''}`}
-            onClick={() => navigate('/transitions')}
-          >
-            Transitions
-          </button>
-          <button 
-            className={`nav-btn ${isActive('/graph') ? 'active' : ''}`}
-            onClick={() => navigate('/graph')}
-          >
-            Graph
-          </button>
+          <div className="nav-group nav-group-left">
+            <button 
+              className={`nav-btn ${isActive('/camelot') ? 'active' : ''}`}
+              onClick={() => navigate('/camelot')}
+            >
+              Camelot
+            </button>
+            <button 
+              className={`nav-btn ${isActive('/') ? 'active' : ''}`}
+              onClick={() => navigate('/')}
+            >
+              DJ Mode
+            </button>
+            <button 
+              className={`nav-btn ${isActive('/graph') ? 'active' : ''}`}
+              onClick={() => navigate('/graph')}
+            >
+              Graph
+            </button>
+          </div>
+          <div className="nav-divider"></div>
+          <div className="nav-group nav-group-right">
+            <button 
+              className={`nav-btn ${isActive('/tracks') ? 'active' : ''}`}
+              onClick={() => navigate('/tracks')}
+            >
+              Tracks
+            </button>
+            <button 
+              className={`nav-btn ${isActive('/playlists') ? 'active' : ''}`}
+              onClick={() => navigate('/playlists')}
+            >
+              Playlists
+            </button>
+            <button 
+              className={`nav-btn ${isActive('/transitions') ? 'active' : ''}`}
+              onClick={() => navigate('/transitions')}
+            >
+              Transitions
+            </button>
+          </div>
         </nav>
         <div className="user-menu">
           <button className="username-btn" onClick={() => navigate('/profile')}>
@@ -95,6 +107,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<ProtectedRoute><DJMode /></ProtectedRoute>} />
+        <Route path="/camelot" element={<ProtectedRoute><Camelot /></ProtectedRoute>} />
         <Route path="/tracks" element={<ProtectedRoute><Tracks /></ProtectedRoute>} />
         <Route path="/playlists" element={<ProtectedRoute><Playlists /></ProtectedRoute>} />
         <Route path="/transitions" element={<ProtectedRoute><Transitions /></ProtectedRoute>} />

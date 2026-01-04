@@ -353,6 +353,19 @@ body::after {
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-md), var(--shadow-inset);
   justify-self: center;
+  align-items: center;
+}
+
+.nav-group {
+  display: flex;
+  gap: 6px;
+}
+
+.nav-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border-default);
+  margin: 0 6px;
 }
 
 .nav-btn {
@@ -1429,6 +1442,68 @@ body:has(.modal-overlay) {
   animation: slideUp var(--duration-normal) var(--ease-elastic);
 }
 
+.modal.modal-small {
+  max-width: 350px;
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.playlist-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.playlist-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-base);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  text-align: left;
+  width: 100%;
+  color: var(--text-primary);
+}
+
+.playlist-picker-item:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent-secondary);
+}
+
+.playlist-picker-item .playlist-icon {
+  font-size: 1.2rem;
+}
+
+.playlist-picker-item .playlist-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.playlist-picker-item .playlist-count {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
 @keyframes slideUp {
   from { 
     opacity: 0; 
@@ -1504,6 +1579,102 @@ body:has(.modal-overlay) {
   max-width: 400px;
   margin: 0 auto;
   line-height: 1.6;
+}
+
+/* ===========================================
+   CAMELOT WHEEL PAGE
+   =========================================== */
+.camelot-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  min-height: calc(100vh - 200px);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+.camelot-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.camelot-header h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary), var(--accent-tertiary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.camelot-header p {
+  color: var(--text-tertiary);
+  font-size: 1rem;
+}
+
+.camelot-wheel-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 40px;
+}
+
+.camelot-wheel-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, var(--accent-primary-glow) 0%, transparent 70%);
+  opacity: 0.3;
+  pointer-events: none;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 0.4; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.camelot-wheel {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.camelot-key {
+  cursor: pointer;
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(34, 197, 94, 0.95);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-lg);
+  border: 1px solid #22c55e;
+  box-shadow: var(--shadow-xl);
+  z-index: 10000;
+  animation: toastIn 0.3s ease-out;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 /* Actions Column */
@@ -2007,6 +2178,12 @@ body:has(.modal-overlay) {
 
 .graph-page.fullscreen .graph-legend {
   left: 40px;
+  right: auto;
+}
+
+.graph-page.fullscreen .graph-legend.transition-legend {
+  left: auto;
+  right: 40px;
 }
 
 .graph-controls {
@@ -2354,6 +2531,16 @@ body:has(.modal-overlay) {
   letter-spacing: 0.05em;
 }
 
+.node-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.node-actions .btn {
+  flex: 1;
+}
+
 .node-transitions {
   margin-bottom: 16px;
 }
@@ -2375,6 +2562,7 @@ body:has(.modal-overlay) {
   cursor: pointer;
   font-size: 0.85rem;
   transition: background var(--duration-fast) var(--ease-out);
+  gap: 8px;
 }
 
 .transition-item:hover {
@@ -2383,17 +2571,20 @@ body:has(.modal-overlay) {
 
 .transition-item .stars {
   font-size: 0.7rem;
+  flex-shrink: 0;
 }
 
 .transition-item .transition-title {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.transition-item .transition-title.in-key {
+  color: #fbbf24;
 }
 
 .key-indicator {
@@ -2636,6 +2827,26 @@ body:has(.modal-overlay) {
   box-shadow: 0 0 6px currentColor;
 }
 
+.legend-line {
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.graph-legend.transition-legend {
+  bottom: 20px;
+  left: auto !important;
+  right: 20px;
+  width: auto;
+  max-width: 200px;
+}
+
+.graph-page.fullscreen .graph-legend.transition-legend {
+  right: 40px;
+  left: auto !important;
+  width: auto;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .tracks-layout {
@@ -2774,7 +2985,8 @@ body:has(.modal-overlay) {
 }
 
 /* Playlist Delete Button */
-.playlist-delete {
+.playlist-delete,
+.playlist-edit {
   background: rgba(233, 69, 96, 0.15);
   border: none;
   color: var(--accent-primary);
@@ -2785,17 +2997,44 @@ body:has(.modal-overlay) {
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   line-height: 1;
-  margin-left: 8px;
+  margin-left: 4px;
   flex-shrink: 0;
 }
 
-.playlist-item:hover .playlist-delete {
+.playlist-edit {
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--accent-secondary);
+  font-size: 0.85rem;
+}
+
+.playlist-item:hover .playlist-delete,
+.playlist-item:hover .playlist-edit {
   opacity: 1;
 }
 
 .playlist-delete:hover {
   color: white;
   background: var(--accent-primary);
+}
+
+.playlist-edit:hover {
+  color: white;
+  background: var(--accent-secondary);
+}
+
+.playlist-rename-form {
+  flex: 1;
+  min-width: 0;
+}
+
+.playlist-rename-form input {
+  width: 100%;
+  background: var(--surface-base);
+  border: 1px solid var(--accent-secondary);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
 }
 
 /* Playlist Editor - Main Panel */

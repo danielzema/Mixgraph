@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { getGraphData, getFolderGraphData, getPlaylistGraphData, getFolders, getPlaylists, getPlaylistTracks } from '../api'
+import { getGraphData, getFolderGraphData, getPlaylistGraphData, getFolders, getPlaylists, getPlaylistTracks, addTrackToPlaylist } from '../api'
 
 // Camelot wheel compatibility checker
 // Compatible keys: same key, ±1 on the wheel (wraps 12→1), or same number different letter (A↔B)
@@ -74,6 +74,9 @@ function Graph() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [searchHighlightedId, setSearchHighlightedId] = useState(null)
+  const [showPlaylistPicker, setShowPlaylistPicker] = useState(false)
+  const [trackToAdd, setTrackToAdd] = useState(null)
+  const [toast, setToast] = useState(null)
   
   // Dynamic canvas sizing based on node count - square for better edge distribution
   const canvasSize = useMemo(() => {
@@ -138,6 +141,25 @@ function Graph() {
     
     setZoom(Math.max(0.2, newZoom))
     setPan({ x: viewCenterX - graphCenterX, y: viewCenterY - graphCenterY })
+  }
+  
+  function showToast(message) {
+    setToast(message)
+    setTimeout(() => setToast(null), 2500)
+  }
+  
+  function openPlaylistPicker(track) {
+    setTrackToAdd(track)
+    setShowPlaylistPicker(true)
+  }
+  
+  async function handleAddToPlaylist(playlistId) {
+    if (!trackToAdd) return
+    await addTrackToPlaylist(playlistId, trackToAdd.id)
+    const playlist = playlists.find(p => p.id === playlistId)
+    showToast(`Added "${trackToAdd.title}" to ${playlist?.name || 'playlist'}`)
+    setShowPlaylistPicker(false)
+    setTrackToAdd(null)
   }
 
   useEffect(() => {
@@ -690,13 +712,26 @@ function Graph() {
     setSearchResults([])
     setSelectedNode(node)
     
-    // Pan to the node
-    const pos = nodePositions[node.id]
-    if (pos) {
-      const centerX = canvasSize.width / 2
-      const centerY = canvasSize.height / 2
-      setPan({ x: centerX - pos.x, y: centerY - pos.y })
-    }
+    // Zoom and pan to the node
+    zoomToNode(node.id)
+  }
+
+  function zoomToNode(nodeId) {
+    const pos = nodePositions[nodeId]
+    if (!pos) return
+    
+    // Zoom in to 1.8x and center on the node
+    const targetZoom = 1.8
+    
+    // To center the node: after scale, the node is at pos * zoom
+    // We want this to appear at canvasSize/2
+    // So: pan + pos * zoom = canvasSize/2
+    // pan = canvasSize/2 - pos * zoom
+    setZoom(targetZoom)
+    setPan({
+      x: canvasSize.width / 2 - pos.x * targetZoom,
+      y: canvasSize.height / 2 - pos.y * targetZoom
+    })
   }
 
   function clearSearchHighlight() {
@@ -831,6 +866,21 @@ function Graph() {
               >
                 <polygon points="0 0, 10 3.5, 0 7" fill="#e94560" />
               </marker>
+              {/* Blend gradient - red to blue */}
+              <linearGradient id="blend-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="100%" stopColor="#3b82f6" />
+              </linearGradient>
+              {/* Gold glow filter for in-key transitions */}
+              <filter id="gold-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feFlood floodColor="#fde047" floodOpacity="0.85" result="color" />
+                <feComposite in="color" in2="blur" operator="in" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
             </defs>
             
             <rect width={canvasSize.width} height={canvasSize.height} fill="transparent" />
@@ -846,12 +896,27 @@ function Graph() {
                 // Only highlight edges that connect consecutive tracks in playlist order
                 const edgeKey = `${edge.from_track_id}-${edge.to_track_id}`
                 const isHighlighted = highlightedEdgePairs.has(edgeKey)
+                
+                // Check if transition is in key
+                const edgeInKey = isInKey(edge.from_key, edge.to_key)
                 // Highlight edges connected to selected node
                 const isConnectedToSelectedNode = selectedNode && 
                   (edge.from_track_id === selectedNode.id || edge.to_track_id === selectedNode.id)
                 
                 // Get edge index for parallel edge differentiation
                 const edgeInfo = edgeIndices.get(edge.id) || { index: 0, total: 1 }
+                
+                // Get color based on transition type
+                const getTransitionColor = (type) => {
+                  switch (type) {
+                    case 'loop': return '#f59e0b' // amber
+                    case 'wordplay': return '#22c55e' // green
+                    case 'echo_out': return '#8b5cf6' // purple
+                    case 'drop_swap': return '#ef4444' // red
+                    case 'blend': return 'url(#blend-gradient)' // gradient red to blue
+                    default: return '#e94560' // default red
+                  }
+                }
                 
                 // Determine edge colors based on state
                 let strokeColor, strokeWidth, fillColor
@@ -870,9 +935,12 @@ function Graph() {
                   strokeWidth = 3
                   fillColor = '#4ade80'
                 } else {
-                  strokeColor = `rgba(233, 69, 96, ${0.3 + edge.rating * 0.15})`
-                  strokeWidth = 1 + edge.rating * 0.5
-                  fillColor = `rgba(233, 69, 96, ${0.5 + edge.rating * 0.1})`
+                  // Color based on transition type (in-key gets a subtle glow added separately)
+                  const baseColor = getTransitionColor(edge.transition_type)
+                  strokeColor = baseColor
+                  strokeWidth = edgeInKey ? 2.5 + edge.rating * 0.4 : 1.5 + edge.rating * 0.4
+                  // For gradient, use a solid fill for arrowhead
+                  fillColor = edge.transition_type === 'blend' ? '#3b82f6' : baseColor
                 }
                 
                 return (
@@ -885,6 +953,7 @@ function Graph() {
                       setSelectedNode(null)
                     }}
                     style={{ cursor: 'pointer' }}
+                    filter={edgeInKey && !isSelected && !isConnectedToSelectedNode && !isHighlighted ? 'url(#gold-glow)' : undefined}
                   >
                     {/* Invisible wider path for easier clicking */}
                     <path
@@ -942,8 +1011,13 @@ function Graph() {
                     className={`graph-node ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''} ${isSearchHighlighted ? 'search-highlighted' : ''}`}
                     transform={`translate(${pos.x}, ${pos.y})`}
                     onClick={() => {
-                      setSelectedNode(isSelected ? null : node)
-                      setSelectedEdge(null)
+                      if (!isSelected) {
+                        setSelectedNode(node)
+                        setSelectedEdge(null)
+                        zoomToNode(node.id)
+                      } else {
+                        setSelectedNode(null)
+                      }
                     }}
                     style={{ cursor: 'pointer' }}
                   >
@@ -1016,8 +1090,7 @@ function Graph() {
                   const keyMatch = isInKey(selectedNode.key, target?.key)
                   return (
                     <div key={e.id} className="transition-item" onClick={() => setSelectedNode(target)}>
-                      <span className="transition-title">
-                        {keyMatch && <span className="key-indicator in-key" title="In Key">🔑</span>}
+                      <span className={`transition-title ${keyMatch ? 'in-key' : ''}`} title={keyMatch ? 'In Key' : ''}>
                         {target?.title}
                       </span>
                       <span className="stars">{'⭐'.repeat(e.rating)}</span>
@@ -1037,8 +1110,7 @@ function Graph() {
                   const keyMatch = isInKey(source?.key, selectedNode.key)
                   return (
                     <div key={e.id} className="transition-item" onClick={() => setSelectedNode(source)}>
-                      <span className="transition-title">
-                        {keyMatch && <span className="key-indicator in-key" title="In Key">🔑</span>}
+                      <span className={`transition-title ${keyMatch ? 'in-key' : ''}`} title={keyMatch ? 'In Key' : ''}>
                         {source?.title}
                       </span>
                       <span className="stars">{'⭐'.repeat(e.rating)}</span>
@@ -1048,9 +1120,14 @@ function Graph() {
             </div>
           )}
           
-          <button className="btn btn-secondary btn-small" onClick={() => setSelectedNode(null)}>
-            Close
-          </button>
+          <div className="node-actions">
+            <button className="btn btn-small" onClick={() => openPlaylistPicker(selectedNode)}>
+              + Add to Playlist
+            </button>
+            <button className="btn btn-secondary btn-small" onClick={() => setSelectedNode(null)}>
+              Close
+            </button>
+          </div>
         </div>
       )}
 
@@ -1160,6 +1237,71 @@ function Graph() {
           <span>No transitions</span>
         </div>
       </div>
+      
+      {/* Transition Type Legend */}
+      <div className="graph-legend transition-legend">
+        <h4>Transition types</h4>
+        <div className="legend-item">
+          <span className="legend-line" style={{ background: 'linear-gradient(90deg, #ef4444, #3b82f6)' }}></span>
+          <span>Blend</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-line" style={{ background: '#f59e0b' }}></span>
+          <span>Loop</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-line" style={{ background: '#22c55e' }}></span>
+          <span>Wordplay</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-line" style={{ background: '#8b5cf6' }}></span>
+          <span>Echo Out</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-line" style={{ background: '#ef4444' }}></span>
+          <span>Drop Swap</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-line" style={{ background: '#facc15', boxShadow: '0 0 6px #facc15' }}></span>
+          <span>In Key</span>
+        </div>
+      </div>
+      
+      {/* Playlist Picker Modal */}
+      {showPlaylistPicker && (
+        <div className="modal-overlay" onClick={() => setShowPlaylistPicker(false)}>
+          <div className="modal modal-small" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Add to Playlist</h2>
+              <button className="modal-close" onClick={() => setShowPlaylistPicker(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              {playlists.length === 0 ? (
+                <p className="empty-text">No playlists yet. Create one in the Playlists tab.</p>
+              ) : (
+                <div className="playlist-picker-list">
+                  {playlists.map(playlist => (
+                    <button
+                      key={playlist.id}
+                      className="playlist-picker-item"
+                      onClick={() => handleAddToPlaylist(playlist.id)}
+                    >
+                      <span className="playlist-icon">📕</span>
+                      <span className="playlist-name">{playlist.name}</span>
+                      <span className="playlist-count">{playlist.track_count} tracks</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Toast notification */}
+      {toast && (
+        <div className="toast">{toast}</div>
+      )}
     </div>
   )
 }

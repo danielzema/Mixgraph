@@ -3,6 +3,7 @@ import {
   getPlaylists, 
   createPlaylist, 
   deletePlaylist,
+  updatePlaylist,
   getPlaylistTracks,
   addTrackToPlaylist,
   removeTrackFromPlaylist,
@@ -22,6 +23,9 @@ function Playlists() {
   const [showAddTrack, setShowAddTrack] = useState(false)
   const [draggedIndex, setDraggedIndex] = useState(null)
   const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [editingPlaylistId, setEditingPlaylistId] = useState(null)
+  const [editingPlaylistName, setEditingPlaylistName] = useState('')
+  const [toast, setToast] = useState(null)
 
   useEffect(() => {
     loadData()
@@ -71,11 +75,40 @@ function Playlists() {
     }
   }
 
+  function startEditingPlaylist(playlist, e) {
+    e.stopPropagation()
+    setEditingPlaylistId(playlist.id)
+    setEditingPlaylistName(playlist.name)
+  }
+
+  async function handleRenamePlaylist(e) {
+    e.preventDefault()
+    if (!editingPlaylistName.trim()) return
+    await updatePlaylist(editingPlaylistId, editingPlaylistName.trim())
+    if (selectedPlaylist?.id === editingPlaylistId) {
+      setSelectedPlaylist({ ...selectedPlaylist, name: editingPlaylistName.trim() })
+    }
+    setEditingPlaylistId(null)
+    setEditingPlaylistName('')
+    loadData()
+  }
+
+  function cancelEditingPlaylist() {
+    setEditingPlaylistId(null)
+    setEditingPlaylistName('')
+  }
+
+  function showToast(message) {
+    setToast(message)
+    setTimeout(() => setToast(null), 2500)
+  }
+
   async function handleAddTrack(track) {
     if (!selectedPlaylist) return
     await addTrackToPlaylist(selectedPlaylist.id, track.id)
     await loadPlaylistTracks(selectedPlaylist.id)
     loadData()
+    showToast(`Added "${track.title}" to playlist`)
   }
 
   async function handleRemoveTrack(position) {
@@ -197,8 +230,28 @@ function Playlists() {
                 onClick={() => setSelectedPlaylist(playlist)}
               >
                 <span className="playlist-icon">📕</span>
-                <span className="playlist-name">{playlist.name}</span>
+                {editingPlaylistId === playlist.id ? (
+                  <form onSubmit={handleRenamePlaylist} className="playlist-rename-form" onClick={e => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      value={editingPlaylistName}
+                      onChange={e => setEditingPlaylistName(e.target.value)}
+                      autoFocus
+                      onBlur={cancelEditingPlaylist}
+                      onKeyDown={e => e.key === 'Escape' && cancelEditingPlaylist()}
+                    />
+                  </form>
+                ) : (
+                  <span className="playlist-name" onDoubleClick={(e) => startEditingPlaylist(playlist, e)}>{playlist.name}</span>
+                )}
                 <span className="playlist-count">{playlist.track_count}</span>
+                <button
+                  className="playlist-edit"
+                  onClick={e => startEditingPlaylist(playlist, e)}
+                  title="Rename playlist"
+                >
+                  ✎
+                </button>
                 <button
                   className="playlist-delete"
                   onClick={e => { e.stopPropagation(); handleDeletePlaylist(playlist) }}
@@ -353,6 +406,11 @@ function Playlists() {
             />
           </div>
         </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className="toast">{toast}</div>
       )}
     </div>
   )

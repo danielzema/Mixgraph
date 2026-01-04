@@ -479,15 +479,19 @@ def get_graph_data():
         ORDER BY id
     """, (g.user["id"],)).fetchall()
     
-    # Get all transitions as edges (for this user)
+    # Get all transitions as edges (for this user) - include from/to keys
     transitions = conn.execute("""
         SELECT 
             t.id,
             t.from_track_id,
             t.to_track_id,
             t.rating,
-            t.transition_type
+            t.transition_type,
+            t1.key as from_key,
+            t2.key as to_key
         FROM transitions t
+        JOIN tracks t1 ON t.from_track_id = t1.id
+        JOIN tracks t2 ON t.to_track_id = t2.id
         WHERE t.user_id = ? OR t.user_id IS NULL
         ORDER BY t.id
     """, (g.user["id"],)).fetchall()
@@ -522,8 +526,12 @@ def get_folder_graph_data(folder_id):
             t.from_track_id,
             t.to_track_id,
             t.rating,
-            t.transition_type
+            t.transition_type,
+            t1.key as from_key,
+            t2.key as to_key
         FROM transitions t
+        JOIN tracks t1 ON t.from_track_id = t1.id
+        JOIN tracks t2 ON t.to_track_id = t2.id
         WHERE t.from_track_id IN (SELECT track_id FROM folder_tracks WHERE folder_id = ?)
           AND t.to_track_id IN (SELECT track_id FROM folder_tracks WHERE folder_id = ?)
         ORDER BY t.id
@@ -559,8 +567,12 @@ def get_playlist_graph_data(playlist_id):
             t.from_track_id,
             t.to_track_id,
             t.rating,
-            t.transition_type
+            t.transition_type,
+            t1.key as from_key,
+            t2.key as to_key
         FROM transitions t
+        JOIN tracks t1 ON t.from_track_id = t1.id
+        JOIN tracks t2 ON t.to_track_id = t2.id
         WHERE t.from_track_id IN (SELECT track_id FROM playlist_tracks WHERE playlist_id = ?)
           AND t.to_track_id IN (SELECT track_id FROM playlist_tracks WHERE playlist_id = ?)
         ORDER BY t.id

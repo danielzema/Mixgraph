@@ -1,6 +1,39 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { getGraphData, getFolderGraphData, getPlaylistGraphData, getFolders, getPlaylists, getPlaylistTracks } from '../api'
 
+// Camelot wheel compatibility checker
+// Compatible keys: same key, ±1 on the wheel (wraps 12→1), or same number different letter (A↔B)
+function isInKey(key1, key2) {
+  if (!key1 || !key2) return false
+  
+  // Parse Camelot notation (e.g., "8A", "11B", "1A")
+  const parse = (key) => {
+    const match = key.match(/^(\d{1,2})([ABab])$/i)
+    if (!match) return null
+    return { num: parseInt(match[1]), letter: match[2].toUpperCase() }
+  }
+  
+  const k1 = parse(key1)
+  const k2 = parse(key2)
+  
+  if (!k1 || !k2) return false
+  
+  // Same key = compatible
+  if (k1.num === k2.num && k1.letter === k2.letter) return true
+  
+  // Same number, different letter (A↔B) = compatible (relative major/minor)
+  if (k1.num === k2.num && k1.letter !== k2.letter) return true
+  
+  // Adjacent numbers on the wheel (same letter) = compatible
+  // The wheel wraps: 12 → 1
+  if (k1.letter === k2.letter) {
+    const diff = Math.abs(k1.num - k2.num)
+    if (diff === 1 || diff === 11) return true // 11 means 12→1 or 1→12
+  }
+  
+  return false
+}
+
 // Cache for persisting graph state across component unmounts
 const graphCache = {
   data: null,
@@ -513,6 +546,7 @@ function Graph() {
 
   const handleSvgMouseDown = useCallback((e) => {
     if (e.target === svgRef.current || e.target.tagName === 'rect') {
+      e.preventDefault() // Prevent text selection
       setIsPanning(true)
       setPanStart({ x: e.clientX, y: e.clientY })
     }
@@ -979,9 +1013,34 @@ function Graph() {
                 .filter(e => e.from_track_id === selectedNode.id)
                 .map(e => {
                   const target = graphData.nodes.find(n => n.id === e.to_track_id)
+                  const keyMatch = isInKey(selectedNode.key, target?.key)
                   return (
                     <div key={e.id} className="transition-item" onClick={() => setSelectedNode(target)}>
-                      <span>{target?.title}</span>
+                      <span className="transition-title">
+                        {keyMatch && <span className="key-indicator in-key" title="In Key">🔑</span>}
+                        {target?.title}
+                      </span>
+                      <span className="stars">{'⭐'.repeat(e.rating)}</span>
+                    </div>
+                  )
+                })}
+            </div>
+          )}
+          
+          {incomingCount(selectedNode.id) > 0 && (
+            <div className="node-transitions">
+              <h4>Transitions from:</h4>
+              {graphData.edges
+                .filter(e => e.to_track_id === selectedNode.id)
+                .map(e => {
+                  const source = graphData.nodes.find(n => n.id === e.from_track_id)
+                  const keyMatch = isInKey(source?.key, selectedNode.key)
+                  return (
+                    <div key={e.id} className="transition-item" onClick={() => setSelectedNode(source)}>
+                      <span className="transition-title">
+                        {keyMatch && <span className="key-indicator in-key" title="In Key">🔑</span>}
+                        {source?.title}
+                      </span>
                       <span className="stars">{'⭐'.repeat(e.rating)}</span>
                     </div>
                   )
@@ -1035,6 +1094,14 @@ function Graph() {
               <div className="edge-info-row">
                 <span className="edge-info-label">Rating</span>
                 <span className="stars">{'⭐'.repeat(selectedEdge.rating)}{'☆'.repeat(5 - selectedEdge.rating)}</span>
+              </div>
+              <div className="edge-info-row">
+                <span className="edge-info-label">Key Match</span>
+                {isInKey(fromNode?.key, toNode?.key) ? (
+                  <span className="key-match-badge in-key">🔑 In Key</span>
+                ) : (
+                  <span className="key-match-badge out-of-key">✗ Out of Key</span>
+                )}
               </div>
               {selectedEdge.notes && (
                 <div className="edge-info-row notes">

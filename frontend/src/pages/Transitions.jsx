@@ -2,6 +2,36 @@ import { useState, useEffect } from 'react'
 import { getTransitions, deleteTransition, createTransition, updateTransition } from '../api'
 import TrackBrowser from '../components/TrackBrowser'
 
+// Camelot wheel compatibility checker
+function isInKey(key1, key2) {
+  if (!key1 || !key2) return null // Unknown if keys are missing
+  
+  const parse = (key) => {
+    const match = key.match(/^(\d{1,2})([ABab])$/i)
+    if (!match) return null
+    return { num: parseInt(match[1]), letter: match[2].toUpperCase() }
+  }
+  
+  const k1 = parse(key1)
+  const k2 = parse(key2)
+  
+  if (!k1 || !k2) return null
+  
+  // Same key = compatible
+  if (k1.num === k2.num && k1.letter === k2.letter) return true
+  
+  // Same number, different letter (A↔B) = compatible
+  if (k1.num === k2.num && k1.letter !== k2.letter) return true
+  
+  // Adjacent numbers on the wheel (same letter) = compatible
+  if (k1.letter === k2.letter) {
+    const diff = Math.abs(k1.num - k2.num)
+    if (diff === 1 || diff === 11) return true
+  }
+  
+  return false
+}
+
 function Transitions() {
   const [transitions, setTransitions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -67,6 +97,7 @@ function Transitions() {
                 <th>From</th>
                 <th></th>
                 <th>To</th>
+                <th>In Key</th>
                 <th>Type</th>
                 <th>Rating</th>
                 <th>Notes</th>
@@ -85,7 +116,16 @@ function Transitions() {
                     <div className="track-cell-title" title={t.to_title}>{t.to_title}</div>
                     <small className="track-cell-artist" title={t.to_artist}>{t.to_artist}</small>
                   </td>
-                  <td><span className="type-badge">{t.transition_type}</span></td>
+                  <td>
+                    {(() => {
+                      const inKey = isInKey(t.from_key, t.to_key)
+                      if (inKey === null) return <span className="key-match-badge unknown">?</span>
+                      return inKey 
+                        ? <span className="key-match-badge in-key">✓ Yes</span>
+                        : <span className="key-match-badge out-of-key">✗ No</span>
+                    })()}
+                  </td>
+                  <td><span className="type-badge">{t.transition_type.replace(/_/g, ' ')}</span></td>
                   <td><span className="stars">{'⭐'.repeat(t.rating)}</span></td>
                   <td>
                     {t.notes ? (

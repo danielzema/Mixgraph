@@ -1,6 +1,36 @@
 import { useState, useEffect } from 'react'
 import { getTracks, getTrackTransitions, getPlaylists, getPlaylistTracks, getTransitions } from '../api'
 
+// Check if two keys are harmonically compatible (Camelot wheel)
+function isInKey(key1, key2) {
+  if (!key1 || !key2) return null
+  
+  const parseKey = (key) => {
+    const match = key.match(/^(\d{1,2})([AB])$/i)
+    if (!match) return null
+    return { number: parseInt(match[1]), letter: match[2].toUpperCase() }
+  }
+  
+  const k1 = parseKey(key1)
+  const k2 = parseKey(key2)
+  
+  if (!k1 || !k2) return null
+  
+  // Same key
+  if (k1.number === k2.number && k1.letter === k2.letter) return true
+  
+  // Adjacent keys (±1 on the wheel, same letter)
+  if (k1.letter === k2.letter) {
+    const diff = Math.abs(k1.number - k2.number)
+    if (diff === 1 || diff === 11) return true // 11 handles 12->1 wrap
+  }
+  
+  // Same number, different letter (A <-> B)
+  if (k1.number === k2.number && k1.letter !== k2.letter) return true
+  
+  return false
+}
+
 function DJMode() {
   // Mode selection
   const [mode, setMode] = useState(null) // null = selecting, 'freestyle' or 'playlist'
@@ -254,8 +284,18 @@ function DJMode() {
                       <div className={`setlist-transition ${transition ? 'has-transition' : 'no-transition'}`}>
                         {transition ? (
                           <>
-                            <span className="transition-type">{transition.transition_type}</span>
+                            <span className="transition-type">{transition.transition_type.replace(/_/g, ' ')}</span>
+                            {(() => {
+                              const inKey = isInKey(track.key, nextTrack.key)
+                              if (inKey === null) return null
+                              return inKey 
+                                ? <span className="in-key-badge yes">In Key</span>
+                                : <span className="in-key-badge no">Out of Key</span>
+                            })()}
                             <span className="transition-rating">{'⭐'.repeat(transition.rating)}</span>
+                            {transition.notes && (
+                              <span className="transition-notes-preview" title={transition.notes}>💬</span>
+                            )}
                           </>
                         ) : (
                           <span className="no-transition-label">⚠ No transition</span>
@@ -452,7 +492,14 @@ function DJMode() {
                   <span className="transition-label">TRANSITION</span>
                 </div>
                 <div className="transition-info">
-                  <span className="type-badge-large">{nextTransition.transition_type}</span>
+                  <span className="type-badge-large">{nextTransition.transition_type.replace(/_/g, ' ')}</span>
+                  {(() => {
+                    const inKey = isInKey(currentTrack?.key, nextTrack?.key)
+                    if (inKey === null) return null
+                    return inKey 
+                      ? <span className="in-key-badge yes">In Key</span>
+                      : <span className="in-key-badge no">Out of Key</span>
+                  })()}
                   <span className="stars-large">{'⭐'.repeat(nextTransition.rating)}<span className="empty-stars">{'☆'.repeat(5 - nextTransition.rating)}</span></span>
                 </div>
                 {nextTransition.notes && (
@@ -499,7 +546,14 @@ function DJMode() {
                     <div className="meta">
                       <span className="bpm-badge">{t.to_bpm?.toFixed(1)} BPM</span>
                       <span className="key-badge">{t.to_key || 'N/A'}</span>
-                      <span className="type-badge">{t.transition_type}</span>
+                      <span className="type-badge">{t.transition_type.replace(/_/g, ' ')}</span>
+                      {(() => {
+                        const inKey = isInKey(currentTrack?.key, t.to_key)
+                        if (inKey === null) return null
+                        return inKey 
+                          ? <span className="in-key-badge yes">In Key</span>
+                          : <span className="in-key-badge no">Out of Key</span>
+                      })()}
                       <span className="stars">{'⭐'.repeat(t.rating)}</span>
                     </div>
                     {t.notes && (

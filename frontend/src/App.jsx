@@ -29,6 +29,7 @@ function App() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isAuthenticated, user, logout, loading } = useAuth()
+  const [showAbout, setShowAbout] = useState(false)
   
   const isActive = (path) => location.pathname === path
 
@@ -114,6 +115,56 @@ function App() {
         <Route path="/graph" element={<ProtectedRoute><Graph /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       </Routes>
+
+      <footer className="app-footer">
+        <span className="footer-copyright">© 2026 Mixgraph</span>
+        <span className="footer-divider"></span>
+        <button className="footer-link" onClick={() => setShowAbout(true)}>
+          About
+        </button>
+      </footer>
+
+      {showAbout && (
+        <div className="modal-overlay" onClick={() => setShowAbout(false)}>
+          <div className="modal about-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>About Mixgraph</h2>
+              <button className="modal-close" onClick={() => setShowAbout(false)}>×</button>
+            </div>
+            <div className="about-content">
+              <h3>🎧 Welcome to Mixgraph</h3>
+              <p>
+                Mixgraph is a DJ set planning tool that helps you create seamless mixes by 
+                mapping transitions between tracks.
+              </p>
+              
+              <h4>📚 How It Works</h4>
+              <ul>
+                <li><strong>Tracks:</strong> Add your music library with BPM and key information</li>
+                <li><strong>Transitions:</strong> Define how tracks flow into each other with ratings and notes</li>
+                <li><strong>Graph:</strong> Visualize all your tracks and transitions as an interactive network</li>
+                <li><strong>Playlists:</strong> Organize tracks into sets and see transition compatibility</li>
+                <li><strong>DJ Mode:</strong> Perform live with suggested next tracks based on your transitions</li>
+                <li><strong>Camelot:</strong> Reference the Camelot wheel for harmonic mixing</li>
+              </ul>
+
+              <h4>🎹 Key Compatibility</h4>
+              <p>
+                Tracks are marked as "In Key" when they share the same Camelot key, are one step 
+                adjacent on the wheel, or share the same number with different letter (A ↔ B).
+              </p>
+
+              <h4>✨ Tips</h4>
+              <ul>
+                <li>Use the Graph view to discover missing transition opportunities</li>
+                <li>Rate your transitions to remember which ones work best</li>
+                <li>Add notes to remember specific mix points or techniques</li>
+                <li>Build playlists to plan your sets in advance</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

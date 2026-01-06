@@ -1,7 +1,4 @@
-PLAYLIST not centered in card on the left, needs to be in the middle of the plus (level)
-
-Remove line from "Well done!" when end of playlist is reached.  
-
-When in freestyle mode and you want to save a set, a button should appear in set history for you to create a playlist from it. 
-
-Numbers not appearing properly in track folders
+Comments has disapeared from Transitions tab, fix this. 
+Create a footer with an about page
+In playlists, remove underscore from DROP_SWAP and the rest, include a in key field also for the transitions in a playlist
+Same fixes when you in dj mode and preview a playlist

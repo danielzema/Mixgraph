@@ -12,6 +12,36 @@ import {
 } from '../api'
 import TrackBrowser from '../components/TrackBrowser'
 
+// Check if two keys are harmonically compatible (Camelot wheel)
+function isInKey(key1, key2) {
+  if (!key1 || !key2) return null
+  
+  const parseKey = (key) => {
+    const match = key.match(/^(\d{1,2})([AB])$/i)
+    if (!match) return null
+    return { number: parseInt(match[1]), letter: match[2].toUpperCase() }
+  }
+  
+  const k1 = parseKey(key1)
+  const k2 = parseKey(key2)
+  
+  if (!k1 || !k2) return null
+  
+  // Same key
+  if (k1.number === k2.number && k1.letter === k2.letter) return true
+  
+  // Adjacent keys (±1 on the wheel, same letter)
+  if (k1.letter === k2.letter) {
+    const diff = Math.abs(k1.number - k2.number)
+    if (diff === 1 || diff === 11) return true // 11 handles 12->1 wrap
+  }
+  
+  // Same number, different letter (A <-> B)
+  if (k1.number === k2.number && k1.letter !== k2.letter) return true
+  
+  return false
+}
+
 function Playlists() {
   const [playlists, setPlaylists] = useState([])
   const [selectedPlaylist, setSelectedPlaylist] = useState(null)
@@ -360,12 +390,19 @@ function Playlists() {
                         <div className={`transition-indicator ${transition ? 'has-transition' : 'no-transition'}`}>
                           {transition ? (
                             <>
-                              {transition.comment && (
-                                <div className="transition-comment">💬 {transition.comment}</div>
+                              {transition.notes && (
+                                <div className="transition-comment">💬 {transition.notes}</div>
                               )}
                               <div className="transition-row">
                                 <span className="transition-arrow">↓</span>
-                                <span className="transition-type">{transition.transition_type}</span>
+                                <span className="transition-type">{transition.transition_type.replace(/_/g, ' ')}</span>
+                                {(() => {
+                                  const inKey = isInKey(track.key, nextTrack.key)
+                                  if (inKey === null) return null
+                                  return inKey 
+                                    ? <span className="in-key-badge yes">In Key</span>
+                                    : <span className="in-key-badge no">Out of Key</span>
+                                })()}
                                 <span className="transition-rating">
                                   {'⭐'.repeat(transition.rating)}
                                   <span className="empty-stars">{'☆'.repeat(5 - transition.rating)}</span>

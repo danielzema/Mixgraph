@@ -85,7 +85,7 @@ function Camelot() {
     <div className="camelot-page">
       <div className="camelot-header">
         <h2>Camelot Wheel</h2>
-        <p>Click a key to see compatible transitions</p>
+        <p>Click a key to see compatible keys</p>
       </div>
       
       <div className="camelot-wheel-wrapper">
@@ -98,10 +98,10 @@ function Camelot() {
           
           {/* Center */}
           <circle cx="50" cy="50" r="12" fill="var(--surface-base)" stroke="var(--border-default)" strokeWidth="0.3" />
-          <text x="50" y="48" textAnchor="middle" fill="var(--text-tertiary)" fontSize="2.5" fontWeight="500">MINOR</text>
-          <text x="50" y="51" textAnchor="middle" fill="var(--text-tertiary)" fontSize="1.8">(inner)</text>
-          <text x="50" y="54" textAnchor="middle" fill="var(--text-tertiary)" fontSize="1.8">MAJOR</text>
-          <text x="50" y="57" textAnchor="middle" fill="var(--text-tertiary)" fontSize="1.8">(outer)</text>
+          <text x="50" y="48" textAnchor="middle" fill="var(--text-tertiary)" fontSize="2.5" fontWeight="500">MAJOR</text>
+          <text x="50" y="51" textAnchor="middle" fill="var(--text-tertiary)" fontSize="1.8">(outer)</text>
+          <text x="50" y="54" textAnchor="middle" fill="var(--text-tertiary)" fontSize="1.8">MINOR</text>
+          <text x="50" y="57" textAnchor="middle" fill="var(--text-tertiary)" fontSize="1.8">(inner)</text>
           
           {/* Outer ring (B keys - Major) */}
           {camelotKeys.slice(12).map((key, i) => {

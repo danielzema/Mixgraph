@@ -1,4 +1,4 @@
 Comments has disapeared from Transitions tab, fix this. 
-Create a footer with an about page
+Create a footer with an about page, when you click on the about page a pop up should pop up with text on how the site works.
 In playlists, remove underscore from DROP_SWAP and the rest, include a in key field also for the transitions in a playlist
 Same fixes when you in dj mode and preview a playlist

@@ -11,8 +11,6 @@ env/
 .eggs/
 
 # Database
-mixgraph.db
-*.db
 
 # Environment
 .env

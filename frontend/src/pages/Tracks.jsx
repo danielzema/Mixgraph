@@ -226,7 +226,7 @@ function Tracks() {
       {/* Sidebar - Folders */}
       <div className="folders-sidebar">
         <div className="sidebar-header">
-          <h3>📁 Track Folders</h3>
+          <h3>Track Folders</h3>
           <button 
             className="btn btn-small"
             onClick={() => setShowNewFolder(true)}
@@ -262,7 +262,7 @@ function Tracks() {
           className={`folder-item ${!selectedFolder ? 'active' : ''}`}
           onClick={() => { setSelectedFolder(null); setFolderTracks([]) }}
         >
-          <span className="folder-icon">🎵</span>
+          <span className="folder-icon icon-music"></span>
           <span className="folder-name">All Tracks</span>
           <span className="folder-count">{tracks.length}</span>
         </div>
@@ -276,7 +276,7 @@ function Tracks() {
             onDragLeave={handleDragLeave}
             onDrop={e => handleDrop(e, folder.id)}
           >
-            <span className="folder-icon">📁</span>
+            <span className="folder-icon icon-folder"></span>
             <span className="folder-name">{folder.name}</span>
             <span className="folder-count">{folder.track_count}</span>
             <button
@@ -290,7 +290,7 @@ function Tracks() {
         ))}
 
         <div className="drop-hint">
-          <small>💡 Drag a Rekordbox .txt file onto a playlist to import</small>
+          <small>Drag a Rekordbox .txt file onto a playlist to import</small>
         </div>
       </div>
 
@@ -300,9 +300,9 @@ function Tracks() {
           <div className="tracks-header">
             <h2>
               {selectedFolder ? (
-                <>📁 {selectedFolder.name}</>
+                <>{selectedFolder.name}</>
               ) : (
-                <>🎵 All Tracks ({tracks.length})</>
+                <>All Tracks ({tracks.length})</>
               )}
             </h2>
             

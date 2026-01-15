@@ -11,6 +11,7 @@ import {
   getTransitions
 } from '../api'
 import TrackBrowser from '../components/TrackBrowser'
+import { Stars } from '../components/StarRating'
 
 // Check if two keys are harmonically compatible (Camelot wheel)
 function isInKey(key1, key2) {
@@ -215,7 +216,7 @@ function Playlists() {
       {/* Sidebar - Playlist List */}
       <div className="playlists-sidebar">
         <div className="sidebar-header">
-          <h3>📕 Playlists</h3>
+          <h3>Playlists</h3>
           <button 
             className="btn btn-small"
             onClick={() => setShowNewPlaylist(true)}
@@ -259,7 +260,7 @@ function Playlists() {
                 className={`playlist-item ${selectedPlaylist?.id === playlist.id ? 'active' : ''}`}
                 onClick={() => setSelectedPlaylist(playlist)}
               >
-                <span className="playlist-icon">📕</span>
+                <span className="playlist-icon icon-list"></span>
                 {editingPlaylistId === playlist.id ? (
                   <form onSubmit={handleRenamePlaylist} className="playlist-rename-form" onClick={e => e.stopPropagation()}>
                     <input
@@ -295,7 +296,7 @@ function Playlists() {
         </div>
 
         <div className="sidebar-hint">
-          <small>💡 Build a DJ set by creating a playlist with ordered transitions</small>
+          <small>Build a DJ set by creating a playlist with ordered transitions</small>
         </div>
       </div>
 
@@ -310,7 +311,7 @@ function Playlists() {
           <div className="card playlist-editor">
             <div className="playlist-header">
               <div>
-                <h2>📕 {selectedPlaylist.name}</h2>
+                <h2>{selectedPlaylist.name}</h2>
                 <p className="playlist-subtitle">
                   {playlistTracks.length} tracks • {playlistTracks.length > 1 ? `${playlistTracks.length - 1} transitions` : 'No transitions yet'}
                 </p>
@@ -325,7 +326,7 @@ function Playlists() {
             {playlistTracks.length === 0 ? (
               <div className="empty-playlist">
                 <div className="drop-zone-large">
-                  <span className="drop-icon">🎵</span>
+                  <span className="drop-icon icon-music"></span>
                   <h3>Add tracks to your playlist</h3>
                   <p>Click "Add Track" to browse your library and track folders</p>
                 </div>
@@ -391,7 +392,7 @@ function Playlists() {
                           {transition ? (
                             <>
                               {transition.notes && (
-                                <div className="transition-comment">💬 {transition.notes}</div>
+                                <div className="transition-comment"><span className="icon-comment"></span> {transition.notes}</div>
                               )}
                               <div className="transition-row">
                                 <span className="transition-arrow">↓</span>
@@ -404,8 +405,7 @@ function Playlists() {
                                     : <span className="in-key-badge no">Out of Key</span>
                                 })()}
                                 <span className="transition-rating">
-                                  {'⭐'.repeat(transition.rating)}
-                                  <span className="empty-stars">{'☆'.repeat(5 - transition.rating)}</span>
+                                  <Stars rating={transition.rating} />
                                 </span>
                               </div>
                             </>

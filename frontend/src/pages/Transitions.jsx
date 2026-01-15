@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getTransitions, deleteTransition, createTransition, updateTransition } from '../api'
 import TrackBrowser from '../components/TrackBrowser'
+import { Stars, StarInput } from '../components/StarRating'
 
 // Camelot wheel compatibility checker
 function isInKey(key1, key2) {
@@ -126,7 +127,7 @@ function Transitions() {
                     })()}
                   </td>
                   <td><span className="type-badge">{t.transition_type.replace(/_/g, ' ')}</span></td>
-                  <td><span className="stars">{'⭐'.repeat(t.rating)}</span></td>
+                  <td><Stars rating={t.rating} /></td>
                   <td>
                     {t.notes ? (
                       <span className="transition-notes" title={t.notes}>{t.notes}</span>
@@ -281,18 +282,7 @@ function CreateTransitionModal({ onClose, onCreate }) {
 
           <div className="form-group">
             <label>Rating</label>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {[1, 2, 3, 4, 5].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  className={`star-btn ${n <= rating ? 'active' : ''}`}
-                  onClick={() => setRating(n)}
-                >
-                  ⭐
-                </button>
-              ))}
-            </div>
+            <StarInput rating={rating} onChange={setRating} />
           </div>
 
           <div className="form-group">
@@ -371,18 +361,7 @@ function EditTransitionModal({ transition, onClose, onSave, onDelete }) {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Rating</label>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {[1, 2, 3, 4, 5].map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  className={`star-btn ${n <= rating ? 'active' : ''}`}
-                  onClick={() => setRating(n)}
-                >
-                  ⭐
-                </button>
-              ))}
-            </div>
+            <StarInput rating={rating} onChange={setRating} />
           </div>
 
           <div className="form-group">

@@ -57,7 +57,7 @@ function Login() {
     <div className="auth-page">
       <div className="auth-container">
         <div className="auth-header">
-          <h1>🎵 Mixgraph</h1>
+          <h1>Mixgraph</h1>
           <p>Your DJ transition planner</p>
         </div>
 

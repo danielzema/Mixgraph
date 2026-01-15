@@ -100,7 +100,7 @@ function App() {
         </nav>
         <div className="user-menu">
           <button className="username-btn" onClick={() => navigate('/profile')}>
-            👤 {user?.username}
+            <span className="icon-user"></span> {user?.username}
           </button>
         </div>
       </header>
@@ -132,13 +132,13 @@ function App() {
               <button className="modal-close" onClick={() => setShowAbout(false)}>×</button>
             </div>
             <div className="about-content">
-              <h3>🎧 Welcome to Mixgraph</h3>
+              <h3>Welcome to Mixgraph</h3>
               <p>
                 Mixgraph is a DJ set planning tool that helps you create seamless mixes by 
                 mapping transitions between tracks.
               </p>
               
-              <h4>📚 How It Works</h4>
+              <h4>How It Works</h4>
               <ul>
                 <li><strong>Tracks:</strong> Add your music library with BPM and key information</li>
                 <li><strong>Transitions:</strong> Define how tracks flow into each other with ratings and notes</li>
@@ -148,13 +148,13 @@ function App() {
                 <li><strong>Camelot:</strong> Reference the Camelot wheel for harmonic mixing</li>
               </ul>
 
-              <h4>🎹 Key Compatibility</h4>
+              <h4>Key Compatibility</h4>
               <p>
                 Tracks are marked as "In Key" when they share the same Camelot key, are one step 
                 adjacent on the wheel, or share the same number with different letter (A ↔ B).
               </p>
 
-              <h4>✨ Tips</h4>
+              <h4>Tips</h4>
               <ul>
                 <li>Use the Graph view to discover missing transition opportunities</li>
                 <li>Rate your transitions to remember which ones work best</li>

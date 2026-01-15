@@ -71,13 +71,13 @@ function TrackBrowser({ onSelect, excludeIds = [], mode = 'tracks' }) {
           className={`browser-tab ${searchMode === 'tracks' ? 'active' : ''}`}
           onClick={() => { setSearchMode('tracks'); setSelectedPlaylist(null); setSearch('') }}
         >
-          🎵 Tracks
+          Tracks
         </button>
         <button 
           className={`browser-tab ${searchMode === 'playlists' ? 'active' : ''}`}
           onClick={() => { setSearchMode('playlists'); setSelectedFolder(null); setSearch('') }}
         >
-          📋 Playlists
+          Playlists
         </button>
       </div>
 
@@ -85,7 +85,7 @@ function TrackBrowser({ onSelect, excludeIds = [], mode = 'tracks' }) {
       <div className="browser-controls">
         {searchMode === 'tracks' && (
           <div className="folder-filter">
-            <label>📁 Folder:</label>
+            <label>Folder:</label>
             <select 
               className="form-select"
               value={selectedFolder?.id || ''}
@@ -123,7 +123,7 @@ function TrackBrowser({ onSelect, excludeIds = [], mode = 'tracks' }) {
             >
               ← Back to playlists
             </button>
-            <div className="playlist-name-label">📋 {selectedPlaylist.name}</div>
+            <div className="playlist-name-label">{selectedPlaylist.name}</div>
           </>
         )}
         
@@ -157,7 +157,7 @@ function TrackBrowser({ onSelect, excludeIds = [], mode = 'tracks' }) {
                     onClick={() => setSelectedPlaylist(playlist)}
                   >
                     <div className="track-info">
-                      <div className="track-title">📋 {playlist.name}</div>
+                      <div className="track-title">{playlist.name}</div>
                       <div className="track-artist">{playlist.track_count} tracks</div>
                     </div>
                   </div>

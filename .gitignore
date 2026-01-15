@@ -46,3 +46,5 @@ mixgraph/
 *.pem
 *.key
 secrets/
+
+mixgraph.sh

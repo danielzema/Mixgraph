@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getTracks, getTrackTransitions, getPlaylists, getPlaylistTracks, getTransitions } from '../api'
+import { Stars } from '../components/StarRating'
 
 // Check if two keys are harmonically compatible (Camelot wheel)
 function isInKey(key1, key2) {
@@ -166,7 +167,7 @@ function DJMode() {
     return (
       <div className="dj-mode-select">
         <div className="card">
-          <h2>🎧 DJ Mode</h2>
+          <h2>DJ Mode</h2>
           <p style={{ marginBottom: 24, color: 'rgba(255,255,255,0.6)' }}>
             Choose how you want to mix
           </p>
@@ -176,7 +177,7 @@ function DJMode() {
               className="mode-card"
               onClick={() => selectMode('freestyle')}
             >
-              <span className="mode-icon">🎤</span>
+              <span className="mode-icon icon-mic"></span>
               <h3>Freestyle</h3>
               <p>See all available transitions and mix tracks freely</p>
             </div>
@@ -185,7 +186,7 @@ function DJMode() {
               className="mode-card"
               onClick={() => selectMode('playlist-select')}
             >
-              <span className="mode-icon">📕</span>
+              <span className="mode-icon icon-list"></span>
               <h3>Setlist</h3>
               <p>Play through one of your premade playlists in order</p>
             </div>
@@ -203,7 +204,7 @@ function DJMode() {
           <button className="btn btn-primary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
-          <h2>📕 Choose a Playlist</h2>
+          <h2>Choose a Playlist</h2>
         </div>
         
         {playlists.length > 0 ? (
@@ -214,7 +215,7 @@ function DJMode() {
                 className="playlist-select-item"
                 onClick={() => selectPlaylist(playlist)}
               >
-                <span className="playlist-icon">📕</span>
+                <span className="playlist-icon icon-list"></span>
                 <div className="playlist-info">
                   <div className="playlist-name">{playlist.name}</div>
                   <div className="playlist-count">{playlist.track_count} tracks</div>
@@ -241,7 +242,7 @@ function DJMode() {
           <button className="btn btn-primary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
-          <h2>📋 {selectedPlaylist?.name}</h2>
+          <h2>{selectedPlaylist?.name}</h2>
         </div>
         
         {tracks.length === 0 ? (
@@ -292,13 +293,13 @@ function DJMode() {
                                 ? <span className="in-key-badge yes">In Key</span>
                                 : <span className="in-key-badge no">Out of Key</span>
                             })()}
-                            <span className="transition-rating">{'⭐'.repeat(transition.rating)}</span>
+                            <Stars rating={transition.rating} />
                             {transition.notes && (
-                              <span className="transition-notes-preview" title={transition.notes}>💬</span>
+                              <span className="transition-notes-preview" title={transition.notes}><span className="icon-comment"></span></span>
                             )}
                           </>
                         ) : (
-                          <span className="no-transition-label">⚠ No transition</span>
+                          <span className="no-transition-label"><span className="icon-warning"></span> No transition</span>
                         )}
                       </div>
                     )}
@@ -320,7 +321,7 @@ function DJMode() {
           <button className="btn btn-primary btn-small" onClick={backToModeSelect}>
             ← Back
           </button>
-          <h2>🎤 Freestyle Mode</h2>
+          <h2>Freestyle Mode</h2>
         </div>
         <p style={{ marginBottom: 20, color: 'rgba(255,255,255,0.6)' }}>
           Search for a track to start your set
@@ -369,7 +370,7 @@ function DJMode() {
           ← Back
         </button>
         <span className="mode-label">
-          {mode === 'freestyle' ? '🎤 Freestyle' : `📋 ${selectedPlaylist?.name}`}
+          {mode === 'freestyle' ? 'Freestyle' : selectedPlaylist?.name}
         </span>
         {mode === 'playlist' && (
           <span className="position-label">
@@ -500,11 +501,11 @@ function DJMode() {
                       ? <span className="in-key-badge yes">In Key</span>
                       : <span className="in-key-badge no">Out of Key</span>
                   })()}
-                  <span className="stars-large">{'⭐'.repeat(nextTransition.rating)}<span className="empty-stars">{'☆'.repeat(5 - nextTransition.rating)}</span></span>
+                  <Stars rating={nextTransition.rating} size="large" />
                 </div>
                 {nextTransition.notes && (
                   <div className="transition-notes-box">
-                    <span className="notes-icon">💬</span>
+                    <span className="icon-comment"></span>
                     <span className="notes-text">{nextTransition.notes}</span>
                   </div>
                 )}
@@ -513,7 +514,7 @@ function DJMode() {
             
             {!nextTransition && (
               <div className="no-transition-warning">
-                ⚠️ No transition defined
+                <span className="icon-warning"></span> No transition defined
               </div>
             )}
           </div>
@@ -554,11 +555,11 @@ function DJMode() {
                           ? <span className="in-key-badge yes">In Key</span>
                           : <span className="in-key-badge no">Out of Key</span>
                       })()}
-                      <span className="stars">{'⭐'.repeat(t.rating)}</span>
+                      <Stars rating={t.rating} />
                     </div>
                     {t.notes && (
                       <div className="transition-card-notes">
-                        📝 {t.notes}
+                        <span className="icon-comment"></span> {t.notes}
                       </div>
                     )}
                   </div>

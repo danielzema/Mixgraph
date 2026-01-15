@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { getGraphData, getFolderGraphData, getPlaylistGraphData, getFolders, getPlaylists, getPlaylistTracks, addTrackToPlaylist } from '../api'
+import { Stars } from '../components/StarRating'
 
 // Camelot wheel compatibility checker
 // Compatible keys: same key, ±1 on the wheel (wraps 12→1), or same number different letter (A↔B)
@@ -797,15 +798,15 @@ function Graph() {
             >
               <option value="">Select Playlist...</option>
               {playlists.map(p => (
-                <option key={p.id} value={p.id}>📋 {p.name}</option>
+                <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           )}
         </div>
         
         <div className="graph-stats">
-          <span>🎵 {graphData.nodes.length} tracks</span>
-          <span>➡️ {graphData.edges.length} transitions</span>
+          <span>{graphData.nodes.length} tracks</span>
+          <span>{graphData.edges.length} transitions</span>
         </div>
 
         <div className="zoom-controls">
@@ -819,10 +820,10 @@ function Graph() {
             disabled={isBuilding}
             title="Refresh graph with latest data"
           >
-            🔄 Refresh
+            Refresh
           </button>
           <button className="btn btn-small btn-secondary" onClick={toggleFullscreen} title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}>
-            {isFullscreen ? '⛶' : '⛶'}
+            {isFullscreen ? 'Exit' : 'Full'}
           </button>
         </div>
       </div>
@@ -1093,7 +1094,7 @@ function Graph() {
                       <span className={`transition-title ${keyMatch ? 'in-key' : ''}`} title={keyMatch ? 'In Key' : ''}>
                         {target?.title}
                       </span>
-                      <span className="stars">{'⭐'.repeat(e.rating)}</span>
+                      <Stars rating={e.rating} />
                     </div>
                   )
                 })}
@@ -1113,7 +1114,7 @@ function Graph() {
                       <span className={`transition-title ${keyMatch ? 'in-key' : ''}`} title={keyMatch ? 'In Key' : ''}>
                         {source?.title}
                       </span>
-                      <span className="stars">{'⭐'.repeat(e.rating)}</span>
+                      <Stars rating={e.rating} />
                     </div>
                   )
                 })}
@@ -1170,12 +1171,12 @@ function Graph() {
               </div>
               <div className="edge-info-row">
                 <span className="edge-info-label">Rating</span>
-                <span className="stars">{'⭐'.repeat(selectedEdge.rating)}{'☆'.repeat(5 - selectedEdge.rating)}</span>
+                <Stars rating={selectedEdge.rating} />
               </div>
               <div className="edge-info-row">
                 <span className="edge-info-label">Key Match</span>
                 {isInKey(fromNode?.key, toNode?.key) ? (
-                  <span className="key-match-badge in-key">🔑 In Key</span>
+                  <span className="key-match-badge in-key"><span className="icon-key"></span> In Key</span>
                 ) : (
                   <span className="key-match-badge out-of-key">✗ Out of Key</span>
                 )}
@@ -1286,7 +1287,7 @@ function Graph() {
                       className="playlist-picker-item"
                       onClick={() => handleAddToPlaylist(playlist.id)}
                     >
-                      <span className="playlist-icon">📕</span>
+                      <span className="playlist-icon icon-list"></span>
                       <span className="playlist-name">{playlist.name}</span>
                       <span className="playlist-count">{playlist.track_count} tracks</span>
                     </button>

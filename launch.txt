@@ -1,0 +1,17 @@
+MIXGRAPH - Launch Instructions
+===============================
+
+Terminal 1 - Backend (Flask API):
+---------------------------------
+cd /Users/danielzema/Documents/dj/Mixgraph
+source venv/bin/activate
+python api.py
+
+Terminal 2 - Frontend (React/Vite):
+-----------------------------------
+cd /Users/danielzema/Documents/dj/Mixgraph/frontend
+npm run dev
+
+Access the app:
+---------------
+Open http://localhost:3000 in your browser
